@@ -627,7 +627,7 @@ void PromoteResourceToDirectAS::PromoteBufferToDirectAS(Instruction* inst, Value
             // Promote ldraw back to load
             pNewBufferAccessInst = builder.CreateAlignedLoad(
                 pBuffer,
-                ldRawIntr->getAlignment(),
+                llvm::MaybeAlign(ldRawIntr->getAlignment()),
                 ldRawIntr->isVolatile());
             break;
         }
@@ -645,7 +645,7 @@ void PromoteResourceToDirectAS::PromoteBufferToDirectAS(Instruction* inst, Value
             pNewBufferAccessInst = builder.CreateAlignedStore(
                 storeVal,
                 pBuffer,
-                storeRawIntr->getAlignment(),
+                llvm::MaybeAlign(storeRawIntr->getAlignment()),
                 storeRawIntr->isVolatile());
             break;
         }

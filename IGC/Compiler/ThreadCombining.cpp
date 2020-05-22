@@ -150,8 +150,9 @@ void ThreadCombining::CreateLoopKernel(
     unsigned int threadGroupSize_X,
     unsigned int threadGroupSize_Y,
     Function* newFunc,
-    llvm::IRBuilder<> builder)
+    llvm::IRBuilder<>& builder)
 {
+    llvm::IRBuilderBase::InsertPointGuard g (builder);
     unsigned int numLoopsX = threadGroupSize_X / newGroupSizeX;
     unsigned int numLoopsY = threadGroupSize_Y / newGroupSizeY;
     unsigned int numBarriers = m_barriers.size();
@@ -408,10 +409,10 @@ bool ThreadCombining::canDoOptimization(Function* m_kernel, llvm::Module& M)
 ///    provided by the loop kernel
 
 void ThreadCombining::CreateNewKernel(llvm::Module& M,
-    llvm::IRBuilder<> builder,
+    llvm::IRBuilder<>& builder,
     llvm::Function* newFunc)
 {
-
+    llvm::IRBuilderBase::InsertPointGuard g (builder);
     DominatorTreeWrapperPass* DT = &getAnalysis<DominatorTreeWrapperPass>(*m_kernel);
 
     // Move all instructions from the the old kernel to the new function

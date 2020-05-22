@@ -652,7 +652,7 @@ void ScalarizeFunction::scalarizeInstruction(ExtractElementInst* EI)
 
     // Connect the "extracted" value to all its consumers
     uint64_t scalarIndex = cast<ConstantInt>(scalarIndexVal)->getZExtValue();
-    if (static_cast<unsigned int>(scalarIndex) < vectorValue->getType()->getVectorNumElements())
+    if (static_cast<unsigned int>(scalarIndex) < dyn_cast<VectorType>(vectorValue->getType())->getNumElements())
     {
         IGC_ASSERT(NULL != operand[static_cast<unsigned int>(scalarIndex)] && "SCM error");
 
@@ -662,7 +662,7 @@ void ScalarizeFunction::scalarizeInstruction(ExtractElementInst* EI)
     else
     {
         IGC_ASSERT(false && "The instruction extractElement is out of bounds.");
-        EI->replaceAllUsesWith(UndefValue::get(vectorValue->getType()->getVectorElementType()));
+        EI->replaceAllUsesWith(UndefValue::get(dyn_cast<VectorType>(vectorValue->getType())->getElementType()));
     }
 
     // Remove original instruction
@@ -841,7 +841,8 @@ void ScalarizeFunction::scalarizeInstruction(LoadInst* LI)
         {
             Constant* laneVal = ConstantInt::get(indexType, dup);
             Value* pGEP = GetElementPtrInst::Create(nullptr, operandBase, laneVal, "GEP_lane", LI);
-            newScalarizedInsts[dup] = new LoadInst(pGEP, LI->getName(), LI);
+            Type* ty = cast<PointerType>(pGEP->getType())->getElementType();
+            newScalarizedInsts[dup] = new LoadInst(ty, pGEP, LI->getName(), LI);
         }
 #else
         GetElementPtrInst* operand = dyn_cast<GetElementPtrInst>(LI->getOperand(0));
@@ -1025,7 +1026,8 @@ void ScalarizeFunction::obtainScalarizedValues(SmallVectorImpl<Value*>& retValue
         for (unsigned i = 0; i < width; i++)
         {
             // Generate dummy "load" instruction (but don't really place in function)
-            retValues[i + destIdx] = new LoadInst(dummyPtr);
+            Type* ty = cast<PointerType>(dummyPtr->getType())->getElementType();
+            retValues[i + destIdx] = new LoadInst(ty, dummyPtr);
             newDRLEntry.dummyVals[i] = retValues[i + destIdx];
         }
         // Copy the data into DRL structure

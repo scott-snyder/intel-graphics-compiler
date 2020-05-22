@@ -457,7 +457,7 @@ static Value* extractNElts(unsigned N, Value* VectorData, Value* Offset,
     if (N == 1)
         return IRB.CreateExtractElement(VectorData, Offset);
 
-    Type* Ty = VectorData->getType()->getVectorElementType();
+    Type* Ty = dyn_cast<VectorType>(VectorData->getType())->getElementType();
     Ty = VectorType::get(Ty, N);
     Value* Result = UndefValue::get(Ty);
     for (unsigned i = 0; i < N; ++i) {
@@ -507,7 +507,7 @@ static void promote(GlobalVariable* GV, VectorType* AllocaType, bool IsSigned,
         for (unsigned i = 0; i < NElts; ++i) {
             Constant* Elt = CA->getAggregateElement(i);
             if (auto EltTy = dyn_cast<VectorType>(Elt->getType())) {
-                unsigned VectorSize = EltTy->getVectorNumElements();
+                unsigned VectorSize = EltTy->getNumElements();
                 for (unsigned j = 0; j < VectorSize; ++j) {
                     Constant* V = Elt->getAggregateElement(j);
                     IGC_ASSERT(Elt && "Null AggregateElement");
@@ -550,7 +550,7 @@ static void promote(GlobalVariable* GV, VectorType* AllocaType, bool IsSigned,
             unsigned N = 1;
             Value* Offset = Index;
             if (Ty->isVectorTy()) {
-                N = Ty->getVectorNumElements();
+              N = dyn_cast<VectorType>(Ty)->getNumElements();
                 Offset = Builder.CreateMul(Offset, ConstantInt::get(Offset->getType(), N));
             }
             Value* Val = extractNElts(N, VectorData, Offset, Builder);

@@ -204,6 +204,7 @@ namespace IGC
         void visitSelectInst(llvm::SelectInst& I);
     };
 
+#if 0
     class IGCConstantFolder : public llvm::ConstantFolder
     {
     public:
@@ -216,6 +217,274 @@ namespace IGC
         llvm::Constant* CreateFMul(llvm::Constant* C0, llvm::Constant* C1, llvm::APFloatBase::roundingMode roundingMode) const;
         llvm::Constant* CreateFPTrunc(llvm::Constant* C0, llvm::Type* dstType, llvm::APFloatBase::roundingMode roundingMode) const;
     };
+#endif
+class IGCConstantFolder final : public llvm::IRBuilderFolder {
+  //virtual void anchor();
+
+public:
+  explicit IGCConstantFolder() = default;
+
+  llvm::Constant* CreateCanonicalize(llvm::Constant* C0, bool flushDenorms = true) const;
+  llvm::Constant* CreateFAdd(llvm::Constant* C0, llvm::Constant* C1, llvm::APFloatBase::roundingMode roundingMode) const;
+  llvm::Constant* CreateFAdd(llvm::Constant* C0, llvm::Constant* C1) const
+  { return CreateFAdd (C0, C1, llvm::APFloatBase::rmNearestTiesToEven); }
+  llvm::Constant* CreateFMul(llvm::Constant* C0, llvm::Constant* C1, llvm::APFloatBase::roundingMode roundingMode) const;
+  llvm::Constant* CreateFMul(llvm::Constant* C0, llvm::Constant* C1) const
+  { return CreateFMul (C0, C1, llvm::APFloatBase::rmNearestTiesToEven); }
+  llvm::Constant* CreateFPTrunc(llvm::Constant* C0, llvm::Type* dstType, llvm::APFloatBase::roundingMode roundingMode) const;
+
+  //===--------------------------------------------------------------------===//
+  // Binary Operators
+  //===--------------------------------------------------------------------===//
+
+  llvm::Constant *CreateAdd(llvm::Constant *LHS, llvm::Constant *RHS,
+                      bool HasNUW = false, bool HasNSW = false) const override {
+    return llvm::ConstantExpr::getAdd(LHS, RHS, HasNUW, HasNSW);
+  }
+
+#if 0
+  llvm::Constant *CreateFAdd(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getFAdd(LHS, RHS);
+  }
+#endif
+
+  llvm::Constant *CreateSub(llvm::Constant *LHS, llvm::Constant *RHS,
+                      bool HasNUW = false, bool HasNSW = false) const override {
+    return llvm::ConstantExpr::getSub(LHS, RHS, HasNUW, HasNSW);
+  }
+
+  llvm::Constant *CreateFSub(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getFSub(LHS, RHS);
+  }
+
+  llvm::Constant *CreateMul(llvm::Constant *LHS, llvm::Constant *RHS,
+                      bool HasNUW = false, bool HasNSW = false) const override {
+    return llvm::ConstantExpr::getMul(LHS, RHS, HasNUW, HasNSW);
+  }
+
+#if 0
+  llvm::Constant *CreateFMul(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getFMul(LHS, RHS);
+  }
+#endif
+
+  llvm::Constant *CreateUDiv(llvm::Constant *LHS, llvm::Constant *RHS,
+                       bool isExact = false) const override {
+    return llvm::ConstantExpr::getUDiv(LHS, RHS, isExact);
+  }
+
+  llvm::Constant *CreateSDiv(llvm::Constant *LHS, llvm::Constant *RHS,
+                       bool isExact = false) const override {
+    return llvm::ConstantExpr::getSDiv(LHS, RHS, isExact);
+  }
+
+  llvm::Constant *CreateFDiv(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getFDiv(LHS, RHS);
+  }
+
+  llvm::Constant *CreateURem(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getURem(LHS, RHS);
+  }
+
+  llvm::Constant *CreateSRem(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getSRem(LHS, RHS);
+  }
+
+  llvm::Constant *CreateFRem(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getFRem(LHS, RHS);
+  }
+
+  llvm::Constant *CreateShl(llvm::Constant *LHS, llvm::Constant *RHS,
+                      bool HasNUW = false, bool HasNSW = false) const override {
+    return llvm::ConstantExpr::getShl(LHS, RHS, HasNUW, HasNSW);
+  }
+
+  llvm::Constant *CreateLShr(llvm::Constant *LHS, llvm::Constant *RHS,
+                       bool isExact = false) const override {
+    return llvm::ConstantExpr::getLShr(LHS, RHS, isExact);
+  }
+
+  llvm::Constant *CreateAShr(llvm::Constant *LHS, llvm::Constant *RHS,
+                       bool isExact = false) const override {
+    return llvm::ConstantExpr::getAShr(LHS, RHS, isExact);
+  }
+
+  llvm::Constant *CreateAnd(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getAnd(LHS, RHS);
+  }
+
+  llvm::Constant *CreateOr(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getOr(LHS, RHS);
+  }
+
+  llvm::Constant *CreateXor(llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getXor(LHS, RHS);
+  }
+
+  llvm::Constant *CreateBinOp(llvm::Instruction::BinaryOps Opc,
+                        llvm::Constant *LHS, llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::get(Opc, LHS, RHS);
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Unary Operators
+  //===--------------------------------------------------------------------===//
+
+  llvm::Constant *CreateNeg(llvm::Constant *C,
+                      bool HasNUW = false, bool HasNSW = false) const override {
+    return llvm::ConstantExpr::getNeg(C, HasNUW, HasNSW);
+  }
+
+  llvm::Constant *CreateFNeg(llvm::Constant *C) const override {
+    return llvm::ConstantExpr::getFNeg(C);
+  }
+
+  llvm::Constant *CreateNot(llvm::Constant *C) const override {
+    return llvm::ConstantExpr::getNot(C);
+  }
+
+  llvm::Constant *CreateUnOp(llvm::Instruction::UnaryOps Opc, llvm::Constant *C) const override {
+    return llvm::ConstantExpr::get(Opc, C);
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Memory Instructions
+  //===--------------------------------------------------------------------===//
+
+  llvm::Constant *CreateGetElementPtr(llvm::Type *Ty, llvm::Constant *C,
+                                llvm::ArrayRef<llvm::Constant *> IdxList) const override {
+    return llvm::ConstantExpr::getGetElementPtr(Ty, C, IdxList);
+  }
+
+  llvm::Constant *CreateGetElementPtr(llvm::Type *Ty, llvm::Constant *C,
+                                llvm::Constant *Idx) const override {
+    // This form of the function only exists to avoid ambiguous overload
+    // warnings about whether to convert Idx to llvm::ArrayRef<llvm::Constant *> or
+    // llvm::ArrayRef<Value *>.
+    return llvm::ConstantExpr::getGetElementPtr(Ty, C, Idx);
+  }
+
+  llvm::Constant *CreateGetElementPtr(llvm::Type *Ty, llvm::Constant *C,
+                                llvm::ArrayRef<llvm::Value *> IdxList) const override {
+    return llvm::ConstantExpr::getGetElementPtr(Ty, C, IdxList);
+  }
+
+  llvm::Constant *CreateInBoundsGetElementPtr(
+                                        llvm::Type *Ty, llvm::Constant *C, llvm::ArrayRef<llvm::Constant *> IdxList) const override {
+    return llvm::ConstantExpr::getInBoundsGetElementPtr(Ty, C, IdxList);
+  }
+
+  llvm::Constant *CreateInBoundsGetElementPtr(llvm::Type *Ty, llvm::Constant *C,
+                                        llvm::Constant *Idx) const override {
+    // This form of the function only exists to avoid ambiguous overload
+    // warnings about whether to convert Idx to llvm::ArrayRef<llvm::Constant *> or
+    // llvm::ArrayRef<llvm::Value *>.
+    return llvm::ConstantExpr::getInBoundsGetElementPtr(Ty, C, Idx);
+  }
+
+  llvm::Constant *CreateInBoundsGetElementPtr(
+                                        llvm::Type *Ty, llvm::Constant *C, llvm::ArrayRef<llvm::Value *> IdxList) const override {
+    return llvm::ConstantExpr::getInBoundsGetElementPtr(Ty, C, IdxList);
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Cast/Conversion Operators
+  //===--------------------------------------------------------------------===//
+
+  llvm::Constant *CreateCast(llvm::Instruction::CastOps Op, llvm::Constant *C,
+                       llvm::Type *DestTy) const override {
+    return llvm::ConstantExpr::getCast(Op, C, DestTy);
+  }
+
+  llvm::Constant *CreatePointerCast(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return llvm::ConstantExpr::getPointerCast(C, DestTy);
+  }
+
+  llvm::Constant *CreatePointerBitCastOrAddrSpaceCast(llvm::Constant *C,
+                                                llvm::Type *DestTy) const override {
+    return llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(C, DestTy);
+  }
+
+  llvm::Constant *CreateIntCast(llvm::Constant *C, llvm::Type *DestTy,
+                          bool isSigned) const override {
+    return llvm::ConstantExpr::getIntegerCast(C, DestTy, isSigned);
+  }
+
+  llvm::Constant *CreateFPCast(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return llvm::ConstantExpr::getFPCast(C, DestTy);
+  }
+
+  llvm::Constant *CreateBitCast(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return CreateCast(llvm::Instruction::BitCast, C, DestTy);
+  }
+
+  llvm::Constant *CreateIntToPtr(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return CreateCast(llvm::Instruction::IntToPtr, C, DestTy);
+  }
+
+  llvm::Constant *CreatePtrToInt(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return CreateCast(llvm::Instruction::PtrToInt, C, DestTy);
+  }
+
+  llvm::Constant *CreateZExtOrBitCast(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return llvm::ConstantExpr::getZExtOrBitCast(C, DestTy);
+  }
+
+  llvm::Constant *CreateSExtOrBitCast(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return llvm::ConstantExpr::getSExtOrBitCast(C, DestTy);
+  }
+
+  llvm::Constant *CreateTruncOrBitCast(llvm::Constant *C, llvm::Type *DestTy) const override {
+    return llvm::ConstantExpr::getTruncOrBitCast(C, DestTy);
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Compare Instructions
+  //===--------------------------------------------------------------------===//
+
+  llvm::Constant *CreateICmp(llvm::CmpInst::Predicate P, llvm::Constant *LHS,
+                       llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getCompare(P, LHS, RHS);
+  }
+
+  llvm::Constant *CreateFCmp(llvm::CmpInst::Predicate P, llvm::Constant *LHS,
+                       llvm::Constant *RHS) const override {
+    return llvm::ConstantExpr::getCompare(P, LHS, RHS);
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Other Instructions
+  //===--------------------------------------------------------------------===//
+
+  llvm::Constant *CreateSelect(llvm::Constant *C, llvm::Constant *True,
+                         llvm::Constant *False) const override {
+    return llvm::ConstantExpr::getSelect(C, True, False);
+  }
+
+  llvm::Constant *CreateExtractElement(llvm::Constant *Vec, llvm::Constant *Idx) const override {
+    return llvm::ConstantExpr::getExtractElement(Vec, Idx);
+  }
+
+  llvm::Constant *CreateInsertElement(llvm::Constant *Vec, llvm::Constant *NewElt,
+                                llvm::Constant *Idx) const override {
+    return llvm::ConstantExpr::getInsertElement(Vec, NewElt, Idx);
+  }
+
+  llvm::Constant *CreateShuffleVector(llvm::Constant *V1, llvm::Constant *V2,
+                                llvm::ArrayRef<int> Mask) const override {
+    return llvm::ConstantExpr::getShuffleVector(V1, V2, Mask);
+  }
+
+  llvm::Constant *CreateExtractValue(llvm::Constant *Agg,
+                               llvm::ArrayRef<unsigned> IdxList) const override {
+    return llvm::ConstantExpr::getExtractValue(Agg, IdxList);
+  }
+
+  llvm::Constant *CreateInsertValue(llvm::Constant *Agg, llvm::Constant *Val,
+                              llvm::ArrayRef<unsigned> IdxList) const override {
+    return llvm::ConstantExpr::getInsertValue(Agg, Val, IdxList);
+  }
+};
 
     class IGCConstProp : public llvm::FunctionPass
     {

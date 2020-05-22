@@ -1296,7 +1296,7 @@ namespace IGC
         };
 
         if (I.getType()->isIntegerTy(64) && I.getOperand(0)->getType()->isVectorTy() &&
-            I.getOperand(0)->getType()->getVectorElementType()->isIntegerTy(32))
+            dyn_cast<VectorType>(I.getOperand(0)->getType())->getElementType()->isIntegerTy(32))
         {
             if (auto IEI = dyn_cast<InsertElementInst>(I.getOperand(0)))
             {
@@ -2987,8 +2987,8 @@ namespace IGC
                 llvm::Type* srcTy = bTInst->getOperand(0)->getType();
                 llvm::Type* dstTy = bTInst->getType();
 
-                srcNElts = (srcTy->isVectorTy()) ? srcTy->getVectorNumElements() : 1;
-                dstNElts = (dstTy->isVectorTy()) ? dstTy->getVectorNumElements() : 1;
+                srcNElts = (srcTy->isVectorTy()) ? dyn_cast<VectorType>(srcTy)->getNumElements() : 1;
+                dstNElts = (dstTy->isVectorTy()) ? dyn_cast<VectorType>(dstTy)->getNumElements() : 1;
 
                 if (srcNElts < dstNElts && srcTy->getScalarSizeInBits() < 64)
                 {
@@ -3086,7 +3086,7 @@ namespace IGC
             // Mark the function pointer in indirect calls as a source
             if (!callinst->getCalledFunction())
             {
-                MarkAsSource(callinst->getCalledValue());
+                MarkAsSource(callinst->getCalledOperand());
             }
         }
         AddPattern(pattern);

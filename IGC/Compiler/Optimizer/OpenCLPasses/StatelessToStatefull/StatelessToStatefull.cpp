@@ -539,7 +539,8 @@ void StatelessToStatefull::visitLoadInst(LoadInst& I)
         Instruction* pPtrToInt = IntToPtrInst::Create(Instruction::IntToPtr, offset, pTy, "", &I);
         pPtrToInt->setDebugLoc(DL);
 
-        Instruction* pLoad = new LoadInst(pPtrToInt, "", I.isVolatile(), MaybeAlign(I.getAlignment()), I.getOrdering(), IGCLLVM::getSyncScopeID(&I), &I);
+        Type* ty = cast<PointerType>(pPtrToInt->getType())->getElementType();
+        Instruction* pLoad = new LoadInst(ty, pPtrToInt, "", I.isVolatile(), MaybeAlign(I.getAlignment()), I.getOrdering(), IGCLLVM::getSyncScopeID(&I), &I);
         pLoad->setDebugLoc(DL);
 
         PointerType* ptrType = dyn_cast<PointerType>(ptr->getType());

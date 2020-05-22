@@ -481,8 +481,9 @@ namespace IGC
         }
     }
 
-    void PixelShaderLowering::EmitMemoryFence(IRBuilder<> builder)
+    void PixelShaderLowering::EmitMemoryFence(IRBuilder<>& builder)
     {
+        llvm::IRBuilderBase::InsertPointGuard g (builder);
         Value* trueValue = builder.getInt1(true);
         Value* falseValue = builder.getInt1(false);
 

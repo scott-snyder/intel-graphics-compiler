@@ -1948,10 +1948,12 @@ void DwarfDebug::endFunction(const Function* MF)
     for (ScopeVariablesMap::iterator
         I = ScopeVariables.begin(), E = ScopeVariables.end(); I != E; ++I)
     {
-        DeleteContainerPointers(I->second);
+        for (auto V : I->second) delete V;
+        I->second.clear();
     }
     ScopeVariables.clear();
-    DeleteContainerPointers(CurrentFnArguments);
+    for (auto V : CurrentFnArguments) delete V;
+    CurrentFnArguments.clear();
     UserVariables.clear();
     DbgValues.clear();
     AbstractVariables.clear();

@@ -350,7 +350,7 @@ bool VectorProcess::reLayoutLoadStore(Instruction* Inst)
     if (LI)
     {
         LoadInst* load = Builder.CreateAlignedLoad(newPtr,
-            LI->getAlignment(),
+            llvm::MaybeAlign(LI->getAlignment()),
             LI->isVolatile(),
             "vCastload");
         load->copyMetadata(*LI);
@@ -450,7 +450,7 @@ bool VectorProcess::reLayoutLoadStore(Instruction* Inst)
                 V = Builder.CreateBitCast(StoreVal, newVTy);
             }
             StoreInst* store = Builder.CreateAlignedStore(V, newPtr,
-                SI->getAlignment(),
+                llvm::MaybeAlign(SI->getAlignment()),
                 SI->isVolatile());
             store->copyMetadata(*SI);
             SI->eraseFromParent();
@@ -652,9 +652,9 @@ void VectorMessage::getInfo(Type* Ty, uint32_t Align, bool useA32,
     bool forceByteScatteredRW)
 {
     VectorType* VTy = dyn_cast<VectorType>(Ty);
-    Type* eTy = VTy ? VTy->getVectorElementType() : Ty;
+    Type* eTy = VTy ? VTy->getElementType() : Ty;
     unsigned eltSize = m_emitter->GetScalarTypeSizeInRegister(eTy);
-    unsigned nElts = VTy ? VTy->getVectorNumElements() : 1;
+    unsigned nElts = VTy ? VTy->getNumElements() : 1;
     // total bytes
     const unsigned TBytes = nElts * eltSize;
 

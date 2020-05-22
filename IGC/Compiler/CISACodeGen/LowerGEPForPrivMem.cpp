@@ -598,9 +598,9 @@ void TransposeHelper::handleGEPInst(
             }
             else
             {
-                arr_sz = T->getVectorNumElements();
+                arr_sz = dyn_cast<VectorType>(T)->getNumElements();
             }
-            T = T->getVectorElementType();
+            T = dyn_cast<VectorType>(T)->getElementType();
         }
 
         pScalarizedIdx = IRB.CreateNUWAdd(pScalarizedIdx, GepOpnd);
@@ -657,7 +657,7 @@ void TransposeHelperPromote::handleLoadInst(
     IRBuilder<> IRB(pLoad);
     IGC_ASSERT(nullptr != pLoad->getType());
     unsigned N = pLoad->getType()->isVectorTy()
-        ? pLoad->getType()->getVectorNumElements()
+        ? dyn_cast<VectorType>(pLoad->getType())->getNumElements()
         : 1;
     Value* Val = loadEltsFromVecAlloca(N, pVecAlloca, pScalarizedIdx, IRB, pLoad->getType()->getScalarType());
     pLoad->replaceAllUsesWith(Val);
@@ -689,7 +689,8 @@ void TransposeHelperPromote::handleStoreInst(
         // %v1 = extractelement <2 x float> %v, i32 1
         // %w1 = insertelement <32 x float> %w0, float %v1, i32 %idx+1
         // store <32 x float> %w1, <32 x float>* %ptr1
-        for (unsigned i = 0, e = pStoreVal->getType()->getVectorNumElements(); i < e; ++i)
+        VectorType* VTy = dyn_cast<VectorType> (pStoreVal->getType());
+        for (unsigned i = 0, e = VTy->getNumElements(); i < e; ++i)
         {
             Value* VectorIdx = ConstantInt::get(pScalarizedIdx->getType(), i);
             auto Val = IRB.CreateExtractElement(pStoreVal, VectorIdx);

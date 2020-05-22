@@ -174,7 +174,7 @@ void LowPrecisionOpt::visitFPTruncInst(llvm::FPTruncInst& I)
 // try to propagate the type in the sampler
 bool LowPrecisionOpt::propagateSamplerType(llvm::GenIntrinsicInst& I)
 {
-    if (IGC_IS_FLAG_DISABLED(UpConvertF16Sampler) && I.getType()->getVectorElementType()->isHalfTy())
+  if (IGC_IS_FLAG_DISABLED(UpConvertF16Sampler) && dyn_cast<VectorType>(I.getType())->getElementType()->isHalfTy())
     {
         return false;
     }
@@ -185,12 +185,12 @@ bool LowPrecisionOpt::propagateSamplerType(llvm::GenIntrinsicInst& I)
         return false;
     }
 
-    Type* eltTy = I.getType()->getVectorElementType();
+    Type* eltTy = dyn_cast<VectorType>(I.getType())->getElementType();
     Type* newDstType = nullptr;
     if (eltTy->isFloatingPointTy())
     {
         // check that all uses are extractelement followed by fpext
-        newDstType = I.getType()->getVectorElementType()->isFloatTy() ?
+      newDstType = dyn_cast<VectorType>(I.getType())->getElementType()->isFloatTy() ?
             m_builder->getHalfTy() : m_builder->getFloatTy();
         for (auto use = I.user_begin(); use != I.user_end(); ++use)
         {

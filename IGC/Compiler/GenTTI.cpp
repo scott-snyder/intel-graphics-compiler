@@ -429,11 +429,14 @@ namespace llvm {
             unsigned FuncSize = countTotalInstructions(F, false);
             return TargetTransformInfo::TCC_Basic * FuncSize;
         }
+#if 0        
         return BaseT::getCallCost(F, Arguments
 #if LLVM_VERSION_MAJOR >= 9
             , U
 #endif
         );
+#endif
+        return 1;
     }
 
 } // namespace llvm

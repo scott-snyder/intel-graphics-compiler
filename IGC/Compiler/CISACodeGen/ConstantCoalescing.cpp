@@ -311,7 +311,7 @@ void ConstantCoalescing::VectorizePrep(llvm::BasicBlock* bb)
         {
             if (load->getType()->isVectorTy() && (wiAns->whichDepend(load) == WIAnalysis::UNIFORM))
             {
-                srcNElts = load->getType()->getVectorNumElements();
+                srcNElts = dyn_cast<VectorType>(load->getType())->getNumElements();
                 DenseMap<uint64_t, Instruction*> extractElementMap;
 
                 for (auto iter = load->user_begin(); iter != load->user_end(); iter++)
@@ -425,7 +425,7 @@ void ConstantCoalescing::ProcessBlock(
                         if (ldRaw->getType()->isVectorTy())
                         {
                             // \todo, another parameter to tune
-                            if (ldRaw->getType()->getVectorNumElements() > MAX_VECTOR_INPUT)
+                            if (dyn_cast<VectorType>(ldRaw->getType())->getNumElements() > MAX_VECTOR_INPUT)
                                 continue;
                             maxEltPlus = CheckVectorElementUses(ldRaw);
                             // maxEltPlus == 0, means that vector may be used with index or as-vector,
@@ -465,7 +465,7 @@ void ConstantCoalescing::ProcessBlock(
             if (loadType->isVectorTy())
             {
                 // \todo, another parameter to tune
-                if (loadType->getVectorNumElements() > MAX_VECTOR_INPUT)
+                if (dyn_cast<VectorType>(loadType)->getNumElements() > MAX_VECTOR_INPUT)
                     continue;
                 maxEltPlus = CheckVectorElementUses(inst);
                 // maxEltPlus == 0, means that vector may be used with index or as-vector,
@@ -509,7 +509,7 @@ void ConstantCoalescing::ProcessBlock(
             if (loadType->isVectorTy())
             {
                 // \todo, another parameter to tune
-                if (loadType->getVectorNumElements() > MAX_VECTOR_INPUT)
+                if (dyn_cast<VectorType>(loadType)->getNumElements() > MAX_VECTOR_INPUT)
                     continue;
                 maxEltPlus = CheckVectorElementUses(inst);
                 // maxEltPlus == 0, means that vector may be used with index or as-vector,
@@ -1689,7 +1689,8 @@ void ConstantCoalescing::AdjustChunk(BufChunk* cov_chunk, uint start_adj, uint s
         WIAnalysis::WIDependancy loadDep = wiAns->whichDepend(cov_chunk->chunkIO);
         irBuilder->SetInsertPoint(cov_chunk->chunkIO->getNextNode());
         Value* vec = UndefValue::get(originalType);
-        for (unsigned i = 0; i < originalType->getVectorNumElements(); i++)
+        VectorType* VTy = dyn_cast<VectorType> (originalType);
+        for (unsigned i = 0; i < VTy->getNumElements(); i++)
         {
             Value* channel = irBuilder->CreateExtractElement(
                 cov_chunk->chunkIO, irBuilder->getInt32(i + start_adj));
@@ -1753,7 +1754,8 @@ void ConstantCoalescing::MoveExtracts(BufChunk* cov_chunk, Instruction* load, ui
             irBuilder->SetInsertPoint(load->getNextNode());
             Type* vecType = load->getType();
             Value* vec = UndefValue::get(vecType);
-            for (unsigned i = 0; i < vecType->getVectorNumElements(); i++)
+            VectorType* VTy = dyn_cast<VectorType> (vecType);
+            for (unsigned i = 0; i < VTy->getNumElements(); i++)
             {
                 Value* channel = irBuilder->CreateExtractElement(
                     cov_chunk->chunkIO, irBuilder->getInt32(i + start_adj));
@@ -1817,7 +1819,8 @@ void ConstantCoalescing::EnlargeChunk(BufChunk* cov_chunk, uint size_adj)
         WIAnalysis::WIDependancy loadDep = wiAns->whichDepend(cov_chunk->chunkIO);
         irBuilder->SetInsertPoint(cov_chunk->chunkIO->getNextNode());
         Value* vec = UndefValue::get(originalType);
-        for (unsigned i = 0; i < originalType->getVectorNumElements(); i++)
+        VectorType* VTy = dyn_cast<VectorType> (originalType);
+        for (unsigned i = 0; i < VTy->getNumElements(); i++)
         {
             Value* channel = irBuilder->CreateExtractElement(
                 cov_chunk->chunkIO, irBuilder->getInt32(i));
@@ -1996,7 +1999,7 @@ void ConstantCoalescing::ScatterToSampler(
     const uint loadSizeInBytes = (unsigned int)load->getType()->getPrimitiveSizeInBits() / 8;
 
     IGC_ASSERT(nullptr != (load->getType()));
-    IGC_ASSERT((!load->getType()->isVectorTy()) || (load->getType()->getVectorNumElements() <= 4));
+    IGC_ASSERT((!load->getType()->isVectorTy()) || (dyn_cast<VectorType>(load->getType())->getNumElements() <= 4));
 
     const bool useByteAddress = m_ctx->m_DriverInfo.UsesTypedConstantBuffersWithByteAddress();
 
@@ -2142,8 +2145,8 @@ void ConstantCoalescing::ReplaceLoadWithSamplerLoad(
     IGC_ASSERT(nullptr != srcTy);
     IGC_ASSERT(nullptr != dstTy);
     IGC_ASSERT(srcTy->isVectorTy());
-    IGC_ASSERT(srcTy->getVectorElementType());
-    IGC_ASSERT(srcTy->getVectorElementType()->isFloatTy());
+    IGC_ASSERT(dyn_cast<VectorType>(srcTy)->getElementType());
+    IGC_ASSERT(dyn_cast<VectorType>(srcTy)->getElementType()->isFloatTy());
 
     const uint dstSizeInBytes = (unsigned int)dstTy->getPrimitiveSizeInBits() / 8;
 
@@ -2177,7 +2180,7 @@ void ConstantCoalescing::ReplaceLoadWithSamplerLoad(
         // bitcast to the destination type
         const uint numElem = (dstSizeInBytes + 3) / 4;
         const uint firstElem = offsetInBytes / 4;
-        result = UndefValue::get(VectorType::get(srcTy->getVectorElementType(), numElem));
+        result = UndefValue::get(VectorType::get(dyn_cast<VectorType>(srcTy)->getElementType(), numElem));
         for (uint i = 0; i < numElem; ++i)
         {
             Value* element = (irBuilder->CreateExtractElement(ldData, irBuilder->getInt32(firstElem + i)));
@@ -2245,9 +2248,10 @@ void ConstantCoalescing::ReplaceLoadWithSamplerLoad(
         if (dstTy->isVectorTy())
         {
             result = UndefValue::get(dstTy);
-            for (uint i = 0; i < dstTy->getVectorNumElements(); i++)
+            VectorType* VTy = dyn_cast<VectorType> (dstTy);
+            for (uint i = 0; i < VTy->getNumElements(); i++)
             {
-                Value* tmpData = ExtractFromSamplerData(dstTy->getVectorElementType(), i);
+                Value* tmpData = ExtractFromSamplerData(VTy->getElementType(), i);
                 result = irBuilder->CreateInsertElement(result, tmpData, irBuilder->getInt32(i));
                 wiAns->incUpdateDepend(result, WIAnalysis::RANDOM);
             }

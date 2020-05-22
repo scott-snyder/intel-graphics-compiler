@@ -201,7 +201,7 @@ unsigned VISAModule::GetFunctionNumber(const llvm::Function* F)
 
         if (match != llvm::StringRef::npos)
         {
-            std::string origFuncName = funcName.substr(0, match);
+            std::string origFuncName = funcName.substr(0, match).str();
 
             return GetFunctionNumber(origFuncName.data());
         }
@@ -577,7 +577,7 @@ VISAVariableLocation VISAModule::GetVariableLocation(const llvm::Instruction* pI
         pVar = m_pShader->GetSymbol(pValue);
     IGC_ASSERT(!pVar->IsImmediate() && "Do not expect an immediate value at this level");
 
-    std::string varName = cast<DIVariable>(pNode)->getName();
+    std::string varName = cast<DIVariable>(pNode)->getName().str();
     unsigned int reg = 0;
     switch (pVar->GetVarType()) {
     case EVARTYPE_GENERAL:
@@ -629,7 +629,9 @@ void VISAModule::GetConstantData(const Constant* pConstVal, DataVector& rawData)
     // If this is an sequential type which is not a CDS or zero, have to collect the values
     // element by element. Note that this is not exclusive with the two cases above, so the
     // order of ifs is meaningful.
-    else if (dyn_cast<CompositeType>(pConstVal->getType()))
+    else if (dyn_cast<StructType>(pConstVal->getType()) ||
+             dyn_cast<ArrayType>(pConstVal->getType()) ||
+             dyn_cast<VectorType>(pConstVal->getType()))
     {
         const int numElts = pConstVal->getNumOperands();
         for (int i = 0; i < numElts; ++i)

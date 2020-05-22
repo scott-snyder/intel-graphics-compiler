@@ -467,8 +467,9 @@ namespace IGC
 
         if (inst->getType()->isVectorTy())
         {
-            if (!(inst->getType()->getVectorElementType()->isFloatTy() ||
-                inst->getType()->getVectorElementType()->isIntegerTy(32)))
+          VectorType* VTy = dyn_cast<VectorType> (inst->getType());
+            if (!(VTy->getElementType()->isFloatTy() ||
+                VTy->getElementType()->isIntegerTy(32)))
                 return false;
         }
         else
@@ -754,11 +755,12 @@ namespace IGC
 
         if (pTypeToPush->isVectorTy())
         {
-            num_elms = pTypeToPush->getVectorNumElements();
-            pTypeToPush = pTypeToPush->getVectorElementType();
+            VectorType* VTy = dyn_cast<VectorType> (pTypeToPush);
+            num_elms = VTy->getNumElements();
+            pTypeToPush = VTy->getElementType();
             llvm::Type* pVecTy = llvm::VectorType::get(pTypeToPush, num_elms);
             pReplacedInst = llvm::UndefValue::get(pVecTy);
-            pScalarTy = pVecTy->getVectorElementType();
+            pScalarTy = dyn_cast<VectorType>(pVecTy)->getElementType();
         }
 
         SmallVector< SmallVector<ExtractElementInst*, 1>, 4> extracts(num_elms);
@@ -890,7 +892,7 @@ namespace IGC
         }
 
         unsigned int num_elms =
-            inst->getType()->isVectorTy() ? inst->getType()->getVectorNumElements() : 1;
+          inst->getType()->isVectorTy() ? dyn_cast<VectorType>(inst->getType())->getNumElements() : 1;
         llvm::Type* pTypeToPush = inst->getType();
         llvm::Value* replaceVector = nullptr;
         unsigned int numberChannelReplaced = 0;
@@ -899,7 +901,7 @@ namespace IGC
         if (inst->getType()->isVectorTy())
         {
             allExtract = LoadUsedByConstExtractOnly(cast<LoadInst>(inst), extracts);
-            pTypeToPush = inst->getType()->getVectorElementType();
+            pTypeToPush = dyn_cast<VectorType>(inst->getType())->getElementType();
         }
 
         for (unsigned int i = 0; i < num_elms; ++i)

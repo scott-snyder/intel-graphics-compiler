@@ -1125,7 +1125,7 @@ uint32_t CShader::GetExtractMask(llvm::Value* vecVal)
     {
         return it->second;
     }
-    unsigned int numChannels = vecVal->getType()->isVectorTy() ? vecVal->getType()->getVectorNumElements() : 1;
+    unsigned int numChannels = vecVal->getType()->isVectorTy() ? dyn_cast<VectorType>(vecVal->getType())->getNumElements() : 1;
     IGC_ASSERT(numChannels <= 32 && "Mask has 32 bits maximally!");
     return (1ULL << numChannels) - 1;
 }
@@ -1133,7 +1133,7 @@ uint32_t CShader::GetExtractMask(llvm::Value* vecVal)
 uint16_t CShader::AdjustExtractIndex(llvm::Value* vecVal, uint16_t index)
 {
     uint16_t result = index;
-    if (vecVal->getType()->getVectorNumElements() < 32)
+    if (dyn_cast<VectorType>(vecVal->getType())->getNumElements() < 32)
     {
         uint32_t mask = GetExtractMask(vecVal);
         for (uint i = 0; i < index; ++i)
@@ -1145,7 +1145,7 @@ uint16_t CShader::AdjustExtractIndex(llvm::Value* vecVal, uint16_t index)
         }
         return result;
     }
-    else
+    //else
     {
         return index;
     }
@@ -1306,7 +1306,7 @@ uint CShader::GetNbElementAndMask(llvm::Value* value, uint32_t& mask)
             nbElement = numLanes(m_SIMDSize);
         }
         break;
-    case llvm::Type::VectorTyID:
+    case llvm::Type::FixedVectorTyID:
     {
         uint nElem = GetNbVectorElementAndMask(value, mask);
         nbElement = GetIsUniform(value) ? nElem : (nElem * numLanes(m_SIMDSize));
@@ -1778,7 +1778,7 @@ VISA_Type IGC::GetType(llvm::Type* type, CodeGenContext* pContext)
             break;
         }
         break;
-    case llvm::Type::VectorTyID:
+    case llvm::Type::FixedVectorTyID:
         return GetType(type->getContainedType(0), pContext);
     case llvm::Type::PointerTyID:
     {
@@ -2121,7 +2121,7 @@ CVariable* CShader::getOrCreateReturnSymbol(llvm::Function* F)
     uint16_t nElts = numLanes(m_SIMDSize);
     if (retType->isVectorTy())
     {
-        nElts *= (uint16_t)retType->getVectorNumElements();
+      nElts *= (uint16_t)dyn_cast<VectorType>(retType)->getNumElements();
     }
     e_alignment align = getGRFAlignment();
     CVariable* var = GetNewVariable(nElts, type, align, /*uniform*/false, m_numberInstance);
@@ -2227,9 +2227,9 @@ CVariable* CShader::getOrCreateArgumentSymbol(
         uint16_t nElts = numLanes(m_SIMDSize);
         if (Arg->getType()->isVectorTy())
         {
-            IGC_ASSERT(Arg->getType()->getVectorElementType()->isIntegerTy() ||
-                Arg->getType()->getVectorElementType()->isFloatingPointTy());
-            nElts *= (uint16_t)Arg->getType()->getVectorNumElements();
+          IGC_ASSERT(dyn_cast<VectorType>(Arg->getType())->getElementType()->isIntegerTy() ||
+                       dyn_cast<VectorType>(Arg->getType())->getElementType()->isFloatingPointTy());
+            nElts *= (uint16_t)dyn_cast<VectorType>(Arg->getType())->getNumElements();
         }
         var = GetNewVariable(nElts, type, align, isUniform, m_numberInstance);
     }
@@ -2495,7 +2495,7 @@ CVariable* CShader::GetSymbol(llvm::Value* value, bool fromConstantPool)
                 if (isVecType)
                 {
                     // Map the entire vector value to the CVar
-                    unsigned numElements = value->getType()->getVectorNumElements();
+                    unsigned numElements = dyn_cast<VectorType>(value->getType())->getNumElements();
                     var = GetNewVariable(numElements, ISA_TYPE_UQ, EALIGN_GRF, true, 1);
                     symbolMapping.insert(std::pair<llvm::Value*, CVariable*>(value, var));
 
@@ -3011,8 +3011,9 @@ bool CShader::isUnpacked(llvm::Value* value)
     {
         if (isa<SampleIntrinsic>(value) || isa<LdmcsInstrinsic>(value))
         {
-            if (value->getType()->getVectorElementType()->isHalfTy() ||
-                value->getType()->getVectorElementType()->isIntegerTy(16))
+            VectorType* VTy = dyn_cast<VectorType>(value->getType());
+            if (VTy->getElementType()->isHalfTy() ||
+                VTy->getElementType()->isIntegerTy(16))
             {
                 isUnpacked = true;
                 auto uses = value->user_begin();

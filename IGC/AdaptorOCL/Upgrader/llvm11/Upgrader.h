@@ -24,30 +24,25 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ======================= end_copyright_notice ==================================*/
 
-#ifndef IGCLLVM_ANALYSIS_MEMORYLOCATION_H
-#define IGCLLVM_ANALYSIS_MEMORYLOCATION_H
+// vim:ts=2:sw=2:et:
+#ifndef __DRIVERINTERFACE_UPGRADER_H__
+#define __DRIVERINTERFACE_UPGRADER_H__
 
-#include <llvm/Analysis/MemoryLocation.h>
+#include "common/LLVMWarningsPush.hpp"
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/Support/ErrorOr.h>
+#include <llvm/Support/Error.h>
+#include <llvm/Support/MemoryBuffer.h>
+#include "common/LLVMWarningsPop.hpp"
 
-namespace IGCLLVM
-{
+namespace upgrader {
 
-    class MemoryLocation : public llvm::MemoryLocation
-    {
-      public:
-        static inline llvm::MemoryLocation getForArgument(
-            llvm::Instruction* I, unsigned ArgIdx,
-            const llvm::TargetLibraryInfo* TLI)
-        {
-            return llvm::MemoryLocation::getForArgument(
-#if LLVM_VERSION_MAJOR <= 7
-            llvm::ImmutableCallSite(I), ArgIdx, *TLI
-#elif LLVM_VERSION_MAJOR >= 8
-            llvm::cast<llvm::CallInst>(I), ArgIdx, TLI
-#endif
-            );
-        }
-    };
-}
+llvm::Expected<std::unique_ptr<llvm::Module>> parseBitcodeFile(llvm::MemoryBufferRef Buffer, llvm::LLVMContext &Context);
 
-#endif
+std::unique_ptr<llvm::MemoryBuffer> upgradeBitcodeFile(llvm::MemoryBufferRef, llvm::LLVMContext &);
+
+llvm::Expected<std::unique_ptr<llvm::Module>> upgradeAndParseBitcodeFile(llvm::MemoryBufferRef, llvm::LLVMContext &);
+
+} // End upgrader namespace
+
+#endif // __DRIVERINTERFACE_UPGRADER_H__
