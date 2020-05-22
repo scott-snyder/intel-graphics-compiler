@@ -631,7 +631,7 @@ void PreCompiledFuncImport::processDivide(BinaryOperator& inst, EmulatedFunction
 
     if (argumentType->isVectorTy())
     {
-        numElements = argumentType->getVectorNumElements();
+        numElements = dyn_cast<VectorType>(argumentType)->getNumElements();
     }
 
     switch (numElements)

@@ -4924,7 +4924,7 @@ void LLVM3DBuilder<preserveNames, T, Inserter>::VectorToScalars(
 
     assert(vector->getType()->isVectorTy());
 
-    const unsigned vectorSize = (unsigned)vector->getType()->getVectorNumElements();
+    const unsigned vectorSize = (unsigned)llvm::dyn_cast<llvm::VectorType>(vector->getType())->getNumElements();
     assert(vectorSize <= 4 && vectorSize <= maxSize);
 
     for (unsigned vecElem = 0; vecElem < maxSize; vecElem++)
@@ -4956,10 +4956,11 @@ llvm::Value* LLVM3DBuilder<preserveNames, T, Inserter>::ScalarsToVector(
     llvm::Type*  resultType = llvm::VectorType::get(scalars[0]->getType(), vectorElementCnt);
     llvm::Value* result = llvm::UndefValue::get(resultType);
 
-    for (unsigned i = 0; i < resultType->getVectorNumElements(); i++)
+    llvm::VectorType* VTy = llvm::dyn_cast<llvm::VectorType> (resultType);
+    for (unsigned i = 0; i < VTy->getNumElements(); i++)
     {
         assert(scalars[i]);
-        assert(resultType->getVectorElementType() == scalars[i]->getType());
+        assert(VTy->getElementType() == scalars[i]->getType());
 
         result = this->CreateInsertElement(
             result,

@@ -566,7 +566,7 @@ bool LiveVars::isLiveOut(Value* VL, const BasicBlock& MBB) {
     // Loop over all of the successors of the basic block, checking to see if
     // the value is either live in the block, or if it is killed in the block.
     SmallVector<const BasicBlock*, 8> OpSuccBlocks;
-    for (succ_const_iterator SI = succ_begin(&MBB), E = succ_end(&MBB); SI != E; ++SI) {
+    for (const_succ_iterator SI = succ_begin(&MBB), E = succ_end(&MBB); SI != E; ++SI) {
         const BasicBlock* SuccMBB = *SI;
         // Is it alive in this successor?
         if (VI.AliveBlocks.count((BasicBlock*)SuccMBB))

@@ -1086,8 +1086,8 @@ void IGC::CustomSafeOptPass::visitLdptr(llvm::CallInst* inst)
     // FIXME: is it better to make typedRead return ty a anyvector?
     if (inst->getType() != pNewCallInst->getType())
     {
-        IGC_ASSERT(inst->getType()->isVectorTy() && inst->getType()->getVectorElementType()->isIntegerTy(32) &&
-            inst->getType()->getVectorNumElements() == 4 && "expect int4 here");
+      IGC_ASSERT(inst->getType()->isVectorTy() && dyn_cast<VectorType>(inst->getType())->getElementType()->isIntegerTy(32) &&
+                 dyn_cast<VectorType>(inst->getType())->getNumElements() == 4 && "expect int4 here");
         auto bitCastInst = builder.CreateBitCast(pNewCallInst, inst->getType());
         inst->replaceAllUsesWith(bitCastInst);
     }
@@ -1167,13 +1167,14 @@ void CustomSafeOptPass::visitExtractElementInst(ExtractElementInst& I)
             if (bitShift != 0)
             {
                 Type* vecType = I.getVectorOperand()->getType();
-                unsigned int eltSize = (unsigned int)vecType->getVectorElementType()->getPrimitiveSizeInBits();
+                unsigned int eltSize = (unsigned int)dyn_cast<VectorType>(vecType)->getElementType()->getPrimitiveSizeInBits();
                 if (bitShift % eltSize == 0)
                 {
                     int elOffset = (int)(bitShift / eltSize);
                     elOffset = rightShift ? elOffset : -elOffset;
                     unsigned int newIndex = (unsigned int)((int)cstIndex->getZExtValue() + elOffset);
-                    if (newIndex < vecType->getVectorNumElements())
+                    VectorType *VTy = dyn_cast<VectorType>(vecType);
+                    if (newIndex < VTy->getNumElements())
                     {
                         IRBuilder<> builder(&I);
                         Value* newBitCast = builder.CreateBitCast(binOp->getOperand(0), vecType);
@@ -1562,7 +1563,7 @@ void GenSpecificPattern::createBitcastExtractInsertPattern(BinaryOperator& I, Va
         else if (auto IEIInst = dyn_cast<InsertElementInst>(Op))
         {
             auto opType = IEIInst->getType();
-            if (opType->isVectorTy() && opType->getVectorElementType()->isIntegerTy(32) && opType->getVectorNumElements() == 2)
+            if (opType->isVectorTy() && dyn_cast<VectorType>(opType)->getElementType()->isIntegerTy(32) && dyn_cast<VectorType>(opType)->getNumElements() == 2)
             {
                 elem = IEIInst->getOperand(1);
             }
@@ -1788,7 +1789,7 @@ void GenSpecificPattern::visitBinaryOperator(BinaryOperator& I)
             BitCastInst* opBC = cast<BitCastInst>(op);
 
             auto opType = opBC->getType();
-            if (!(opType->isVectorTy() && opType->getVectorElementType()->isIntegerTy(32) && opType->getVectorNumElements() == 2))
+            if (!(opType->isVectorTy() && dyn_cast<VectorType>(opType)->getElementType()->isIntegerTy(32) && dyn_cast<VectorType>(opType)->getNumElements() == 2))
                 return nullptr;
 
             if (opBC->getSrcTy()->isDoubleTy())
@@ -2208,8 +2209,8 @@ void GenSpecificPattern::visitBitCastInst(BitCastInst& I)
                 if (zExtInst->getOperand(0)->getType()->isIntegerTy(32) &&
                     isa<InsertElementInst>(bitCastInst->getOperand(0)) &&
                     bitCastInst->getOperand(0)->getType()->isVectorTy() &&
-                    bitCastInst->getOperand(0)->getType()->getVectorElementType()->isIntegerTy(32) &&
-                    bitCastInst->getOperand(0)->getType()->getVectorNumElements() == 2)
+                    dyn_cast<VectorType>(bitCastInst->getOperand(0)->getType())->getElementType()->isIntegerTy(32) &&
+                    dyn_cast<VectorType>(bitCastInst->getOperand(0)->getType())->getNumElements() == 2)
                 {
                     InsertElementInst* insertElementInst = cast<InsertElementInst>(bitCastInst->getOperand(0));
 
@@ -2307,7 +2308,7 @@ void GenSpecificPattern::visitFNeg(llvm::UnaryOperator& I)
     }
     else
     {
-        uint32_t vectorSize = I.getType()->getVectorNumElements();
+        uint32_t vectorSize = dyn_cast<VectorType>(I.getType())->getNumElements();
         fsub = llvm::UndefValue::get(I.getType());
 
         for (uint32_t i = 0; i < vectorSize; ++i)
@@ -2326,7 +2327,7 @@ llvm::Constant* IGC::IGCConstantFolder::CreateFAdd(llvm::Constant* C0, llvm::Con
 {
     if (llvm::isa<llvm::UndefValue>(C0) || llvm::isa<llvm::UndefValue>(C1))
     {
-        return llvm::ConstantFolder::CreateFAdd(C0, C1);
+        return llvm::ConstantExpr::getFAdd(C0, C1);
     }
     llvm::ConstantFP* CFP0 = llvm::cast<ConstantFP>(C0);
     llvm::ConstantFP* CFP1 = llvm::cast<ConstantFP>(C1);
@@ -2347,7 +2348,7 @@ llvm::Constant* IGC::IGCConstantFolder::CreateFMul(llvm::Constant* C0, llvm::Con
 {
     if (llvm::isa<llvm::UndefValue>(C0) || llvm::isa<llvm::UndefValue>(C1))
     {
-        return llvm::ConstantFolder::CreateFMul(C0, C1);
+        return llvm::ConstantExpr::getFMul(C0, C1);
     }
     llvm::ConstantFP* CFP0 = llvm::cast<ConstantFP>(C0);
     llvm::ConstantFP* CFP1 = llvm::cast<ConstantFP>(C1);
@@ -2368,7 +2369,7 @@ llvm::Constant* IGC::IGCConstantFolder::CreateFPTrunc(llvm::Constant* C0, llvm::
 {
     if (llvm::isa<llvm::UndefValue>(C0))
     {
-        return llvm::ConstantFolder::CreateFPCast(C0, dstType);
+        return CreateFPCast(C0, dstType);
     }
     APFloat APF = llvm::cast<ConstantFP>(C0)->getValueAPF();
     const fltSemantics& outputSemantics = dstType->isHalfTy() ? APFloatBase::IEEEhalf() :
@@ -2470,8 +2471,9 @@ Constant* IGCConstProp::ReplaceFromDynConstants(unsigned bufId, unsigned eltId, 
     }
     else
     {
-        Type * srcEltTy = type->getVectorElementType();
-        uint32_t srcNElts = type->getVectorNumElements();
+        VectorType* VTy = dyn_cast<VectorType>(type);
+        Type * srcEltTy = VTy->getElementType();
+        uint32_t srcNElts = VTy->getNumElements();
         uint32_t eltSize_in_bytes = (unsigned int)srcEltTy->getPrimitiveSizeInBits() / 8;
         std::vector<uint32_t> constValVec;
 
@@ -2578,8 +2580,9 @@ Constant* IGCConstProp::replaceShaderConstant(LoadInst* inst)
                 char* offset = &(modMD->immConstant.data[0]);
                 if (inst->getType()->isVectorTy())
                 {
-                    Type* srcEltTy = inst->getType()->getVectorElementType();
-                    uint32_t srcNElts = inst->getType()->getVectorNumElements();
+                    VectorType* VTy = dyn_cast<VectorType>(inst->getType());
+                    Type* srcEltTy = VTy->getElementType();
+                    uint32_t srcNElts = VTy->getNumElements();
                     uint32_t eltSize_in_bytes = (unsigned int)srcEltTy->getPrimitiveSizeInBits() / 8;
                     IRBuilder<> builder(inst);
                     Value* vectorValue = UndefValue::get(inst->getType());
@@ -2877,7 +2880,7 @@ Constant* IGCConstProp::ConstantFoldCmpInst(CmpInst* CI)
     {
         bool AllTrue = true, AllFalse = true;
         auto VecOpnd = cast<Constant>(EEI->getVectorOperand());
-        unsigned N = VecOpnd->getType()->getVectorNumElements();
+        unsigned N = dyn_cast<VectorType>(VecOpnd->getType())->getNumElements();
         for (unsigned i = 0; i < N; ++i)
         {
             Constant* Opnd = VecOpnd->getAggregateElement(i);

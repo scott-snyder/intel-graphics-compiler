@@ -68,7 +68,7 @@ void HandleLoadStoreInstructions::visitLoadInst(llvm::LoadInst& I)
 
     if (I.getType()->isDoubleTy() ||
         (I.getType()->isVectorTy() &&
-            I.getType()->getVectorElementType()->isDoubleTy()))
+         dyn_cast<VectorType>(I.getType())->getElementType()->isDoubleTy()))
     {
         // scalar/vector double instruction
         // Found an instruction of type
@@ -78,7 +78,9 @@ void HandleLoadStoreInstructions::visitLoadInst(llvm::LoadInst& I)
 
         if (I.getType()->isVectorTy())
         {
-            numVectorElements = I.getType()->getVectorNumElements();
+            VectorType *VTy = dyn_cast<VectorType>(I.getType());
+
+            numVectorElements = VTy->getNumElements();
             doubleDstType = llvm::VectorType::get(builder.getDoubleTy(), numVectorElements);
         }
         uint as = ptrv->getType()->getPointerAddressSpace();
@@ -157,14 +159,14 @@ void HandleLoadStoreInstructions::visitStoreInst(llvm::StoreInst& I)
     llvm::Value* ptrv = llvm::cast<llvm::StoreInst>(I).getPointerOperand();
     if (I.getValueOperand()->getType()->isDoubleTy() ||
         (I.getValueOperand()->getType()->isVectorTy() &&
-            I.getValueOperand()->getType()->getVectorElementType()->isDoubleTy()))
+         dyn_cast<VectorType>(I.getValueOperand()->getType())->getElementType()->isDoubleTy()))
     {
         // scalar/vector double instruction
         uint32_t numVectorElements = 1;
 
         if (I.getValueOperand()->getType()->isVectorTy())
         {
-            numVectorElements = I.getValueOperand()->getType()->getVectorNumElements();
+          numVectorElements = dyn_cast<VectorType>(I.getValueOperand()->getType())->getNumElements();
         }
 
 

@@ -546,14 +546,14 @@ public:
           if (!parm.hasValue())
           {
               return addMDNode(inst, Builder.createTemplateTypeParameter(cu, parm.getName()->getStr(),
-                  actualType));
+                                                                         actualType, false));
           }
           else
           {
               auto val = parm.getValue();
               auto constant = ConstantInt::get(Type::getInt64Ty(M->getContext()), val);
               return addMDNode(inst, Builder.createTemplateValueParameter(cu, parm.getName()->getStr(),
-                  actualType, constant));
+                                                                          actualType, false, constant));
           }
       }
       else if (templateOp == OCLExtOpDbgKind::TypeTemplateTemplateParameter)
@@ -1934,7 +1934,7 @@ SPIRVToLLVM::postProcessFunctionsReturnStruct(Function *F) {
   if (!F->getReturnType()->isStructTy())
     return false;
 
-  std::string Name = F->getName();
+  std::string Name = F->getName().str();
   F->setName(Name + ".old");
 
   std::vector<Type *> ArgTys;
@@ -1980,7 +1980,8 @@ SPIRVToLLVM::postProcessFunctionsReturnStruct(Function *F) {
       Args.insert(Args.begin(), Alloca);
       auto NewCI = CallInst::Create(NewF, Args, "", CI);
       NewCI->setCallingConv(CI->getCallingConv());
-      auto Load = new LoadInst(Alloca,"",CI);
+      Type* ty = cast<PointerType>(Alloca->getType())->getElementType();
+      auto Load = new LoadInst(ty,Alloca,"",CI);
       CI->replaceAllUsesWith(Load);
       CI->eraseFromParent();
     }
@@ -1992,7 +1993,7 @@ SPIRVToLLVM::postProcessFunctionsReturnStruct(Function *F) {
 
 bool
 SPIRVToLLVM::postProcessFunctionsWithAggregateArguments(Function* F) {
-  auto Name = F->getName();
+  auto Name = F->getName().str();
   auto Attrs = F->getAttributes();
   auto DL = M->getDataLayout();
   auto ptrSize = DL.getPointerSize();
@@ -2058,7 +2059,7 @@ Value *SPIRVToLLVM::promoteBool(Value *pVal, BasicBlock *BB)
 
     auto *PromoType = isa<VectorType>(pVal->getType()) ?
         cast<Type>(VectorType::get(Type::getInt8Ty(pVal->getContext()),
-            pVal->getType()->getVectorNumElements())) :
+                                   dyn_cast<VectorType>(pVal->getType())->getNumElements())) :
         Type::getInt8Ty(pVal->getContext());
 
     if (auto *C = dyn_cast<Constant>(pVal))
@@ -2100,7 +2101,7 @@ Value *SPIRVToLLVM::truncBool(Value *pVal, BasicBlock *BB)
 
     auto *TruncType = isa<VectorType>(pVal->getType()) ?
         cast<Type>(VectorType::get(Type::getInt1Ty(pVal->getContext()),
-            pVal->getType()->getVectorNumElements())) :
+                                   dyn_cast<VectorType>(pVal->getType())->getNumElements())) :
         Type::getInt1Ty(pVal->getContext());
 
     if (auto *C = dyn_cast<Constant>(pVal))
@@ -2146,7 +2147,7 @@ Type *SPIRVToLLVM::truncBoolType(SPIRVType *SPVType, Type *LLType)
 
     return isa<VectorType>(LLType) ?
         cast<Type>(VectorType::get(Type::getInt1Ty(LLType->getContext()),
-                                   LLType->getVectorNumElements())) :
+                                   dyn_cast<VectorType>(LLType)->getNumElements())) :
         Type::getInt1Ty(LLType->getContext());
 }
 
@@ -2299,7 +2300,8 @@ SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
       {
         if(CV[i]->getType()->isVectorTy())
         {
-          for(uint32_t j = 0; j < CV[i]->getType()->getVectorNumElements(); j++)
+          VectorType* VTy = dyn_cast<VectorType> (CV[i]->getType());
+          for(uint32_t j = 0; j < VTy->getNumElements(); j++)
           {
             Value *v = ExtractElementInst::Create( CV[i],ConstantInt::get( *Context,APInt( 32,j ) ),BCC->getName(),BB );
             elm1 = CreateCompositeConstruct( elm1,v,pos++ );
@@ -2467,7 +2469,8 @@ SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
         nullptr,
         std::string(kPlaceholderPrefix) + BV->getName(),
         0, GlobalVariable::NotThreadLocal, 0);
-    auto LD = new LoadInst(GV, BV->getName(), BB);
+    Type* ty = cast<PointerType>(GV->getType())->getElementType();
+    auto LD = new LoadInst(ty, GV, BV->getName(), BB);
     PlaceholderMap[BV] = LD;
     return mapValue(BV, LD);
   }
@@ -2606,7 +2609,8 @@ SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
   case OpLoad: {
     SPIRVLoad *BL = static_cast<SPIRVLoad*>(BV);
     IGC_ASSERT(BB && "Invalid BB");
-    return mapValue(BV, new LoadInst(
+    Type* ty = cast<PointerType>(transValue(BL->getSrc(), F, BB)->getType())->getElementType();
+    return mapValue(BV, new LoadInst(ty, 
       transValue(BL->getSrc(), F, BB),
       BV->getName(),
       BL->hasDecorate(DecorationVolatile) || BL->SPIRVMemoryAccess::getVolatile() != 0,
@@ -2831,7 +2835,7 @@ SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
   case OpFunctionPointerCallINTEL: {
     SPIRVFunctionPointerCallINTEL *BC =
       static_cast<SPIRVFunctionPointerCallINTEL*>(BV);
-    auto Call = CallInst::Create(transValue(BC->getCalledValue(), F, BB),
+    auto Call = CallInst::Create(dyn_cast<Function>(transValue(BC->getCalledValue(), F, BB)),
       transValue(BC->getArgumentValues(), F, BB),
       BC->getName(), BB);
     // Assuming we are calling a regular device function
@@ -2862,7 +2866,7 @@ SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
 
   case OpFNegate: {
     SPIRVUnary *BC = static_cast<SPIRVUnary*>(BV);
-    return mapValue(BV, BinaryOperator::CreateFNeg(
+    return mapValue(BV, UnaryOperator::CreateFNeg(
       transValue(BC->getOperand(0), F, BB),
       BV->getName(), BB));
     }
@@ -2939,7 +2943,7 @@ SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
           a->getType()->getScalarType(),
           a->getType()->getScalarSizeInBits() - 1);
       auto *ShiftOp = isa<VectorType>(a->getType()) ?
-          ConstantVector::getSplat(a->getType()->getVectorNumElements(), ShiftAmt) :
+        ConstantVector::getSplat(ElementCount(dyn_cast<VectorType>(a->getType())->getNumElements(), false), ShiftAmt) :
           ShiftAmt;
 
       // OCL C:
@@ -3283,15 +3287,16 @@ SPIRVToLLVM::transSPIRVBuiltinFromInst(SPIRVInstruction *BI, BasicBlock *BB) {
               "",
               BB);
       }
-      else if (coordType->getVectorNumElements() != 4)
+      else if (dyn_cast<VectorType>(coordType)->getNumElements() != 4)
       {
           Value *undef = UndefValue::get(coordType);
 
+          VectorType* VTy = dyn_cast<VectorType> (coordType);
           SmallVector<Constant*, 4> shuffleIdx;
-          for (unsigned i = 0; i < coordType->getVectorNumElements(); i++)
+          for (unsigned i = 0; i < VTy->getNumElements(); i++)
               shuffleIdx.push_back(ConstantInt::get(Type::getInt32Ty(*Context), i));
 
-          for (unsigned i = coordType->getVectorNumElements(); i < 4; i++)
+          for (unsigned i = VTy->getNumElements(); i < 4; i++)
               shuffleIdx.push_back(ConstantInt::get(Type::getInt32Ty(*Context), 0));
 
           imageCoordinateWiden = new ShuffleVectorInst(

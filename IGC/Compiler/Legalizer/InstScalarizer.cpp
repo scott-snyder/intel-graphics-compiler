@@ -105,7 +105,7 @@ bool InstScalarizer::visitLoadInst(LoadInst& I) {
 
     unsigned AS = I.getPointerAddressSpace();
 
-    Type* EltTy = OrigTy->getVectorElementType();
+    Type* EltTy = dyn_cast<VectorType>(OrigTy)->getElementType();
 
     if (TL->preferVectorLoad(OrigTy)) {
         // Skip if this load is already legalized.
@@ -132,7 +132,7 @@ bool InstScalarizer::visitLoadInst(LoadInst& I) {
         IGC_ASSERT(TL->getTypeSizeInBits(EltTy) ==
             TL->getTypeStoreSizeInBits(EltTy));
 
-        unsigned NumElts = OrigTy->getVectorNumElements();
+        unsigned NumElts = dyn_cast<VectorType>(OrigTy)->getNumElements();
         unsigned Elt = 0;
 
         Type* NewPtrTy = PointerType::get(EltTy, AS);
@@ -232,13 +232,13 @@ bool InstScalarizer::visitStoreInst(StoreInst& I) {
 
     ValueSeq* ValSeq;
     std::tie(ValSeq, std::ignore) = TL->getLegalizedValues(OrigVal);
-    IGC_ASSERT(ValSeq->size() == OrigTy->getVectorNumElements());
+    IGC_ASSERT(ValSeq->size() == dyn_cast<VectorType>(OrigTy)->getNumElements());
 
     StringRef Name = OrigVal->getName();
 
     unsigned AS = I.getPointerAddressSpace();
 
-    Type* EltTy = OrigTy->getVectorElementType();
+    Type* EltTy = dyn_cast<VectorType>(OrigTy)->getElementType();
 
     if (TL->preferVectorStore(OrigTy)) {
         // If the type of store value prefer to be vector, prepare its
@@ -271,7 +271,7 @@ bool InstScalarizer::visitStoreInst(StoreInst& I) {
         IGC_ASSERT(TL->getTypeSizeInBits(EltTy) ==
             TL->getTypeStoreSizeInBits(EltTy));
 
-        unsigned NumElts = OrigTy->getVectorNumElements();
+        unsigned NumElts = dyn_cast<VectorType>(OrigTy)->getNumElements();
         unsigned Elt = 0;
 
         Type* NewPtrTy = PointerType::get(EltTy, AS);
@@ -500,7 +500,7 @@ bool InstScalarizer::visitInsertElementInst(InsertElementInst& I) {
 
     IGC_ASSERT(VecSeqCopy.size() % EltSeq->size() == 0);
 
-    unsigned NumElts = I.getOperand(0)->getType()->getVectorNumElements();
+    unsigned NumElts = dyn_cast<VectorType>(I.getOperand(0)->getType())->getNumElements();
     unsigned i = 0;
     for (unsigned Elt = 0; Elt != NumElts; ++Elt) {
         if (Elt == Idx) {

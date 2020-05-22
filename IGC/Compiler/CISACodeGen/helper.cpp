@@ -230,7 +230,8 @@ namespace IGC
 
     llvm::LoadInst* cloneLoad(llvm::LoadInst* Orig, llvm::Value* Ptr)
     {
-        llvm::LoadInst* LI = new llvm::LoadInst(Ptr, "", Orig);
+        Type* ty = cast<PointerType>(Ptr->getType())->getElementType();
+        llvm::LoadInst* LI = new llvm::LoadInst(ty, Ptr, "", Orig);
         LI->setVolatile(Orig->isVolatile());
         LI->setAlignment(MaybeAlign(Orig->getAlignment()));
         if (LI->isAtomic())
@@ -317,7 +318,7 @@ namespace IGC
         {
             llvm::Type* dataType = storeVal->getType();
             IGC_ASSERT(nullptr != dataType);
-            IGC_ASSERT((dataType->getPrimitiveSizeInBits() == 16) || (dataType->getPrimitiveSizeInBits() == 32));
+            IGC_ASSERT((dataType->getPrimitiveSizeInBits() == 8) ||(dataType->getPrimitiveSizeInBits() == 16) || (dataType->getPrimitiveSizeInBits() == 32));
 
             llvm::Type* types[2] = {
                 bufPtr->getType(),
@@ -1434,7 +1435,8 @@ namespace IGC
             {
                 instList[i] = builder.CreateExtractElement(val, static_cast<uint64_t>(0));
                 size_t iOld = i;
-                for (unsigned j = 1; j < val->getType()->getVectorNumElements(); j++)
+                VectorType* VTy = dyn_cast<VectorType>(val->getType());
+                for (unsigned j = 1; j < VTy->getNumElements(); j++)
                 {
                     instList.insert(instList.begin()+ iOld +j, builder.CreateExtractElement(val, j));
                     i++;
@@ -1466,8 +1468,8 @@ namespace IGC
                 ScalarizeAggregateMembers(builder, builder.CreateExtractValue(val, i), instList);
             }
             break;
-        case llvm::Type::VectorTyID:
-            num = type->getVectorNumElements();
+        case llvm::Type::FixedVectorTyID:
+            num = dyn_cast<VectorType>(type)->getNumElements();
             for (unsigned i = 0; i < num; i++)
             {
                 ScalarizeAggregateMembers(builder, builder.CreateExtractElement(val, i), instList);
@@ -1506,12 +1508,12 @@ namespace IGC
                 indices.pop_back();
             }
             break;
-        case llvm::Type::VectorTyID:
-            num = type->getVectorNumElements();
+        case llvm::Type::FixedVectorTyID:
+            num = dyn_cast<VectorType>(type)->getNumElements();
             for (unsigned i = 0; i < num; i++)
             {
                 indices.push_back(builder.getInt32(i));
-                ScalarizeAggregateMemberAddresses(builder, type->getVectorElementType(), val, instList, indices);
+                ScalarizeAggregateMemberAddresses(builder, dyn_cast<VectorType>(type)->getElementType(), val, instList, indices);
                 indices.pop_back();
             }
             break;

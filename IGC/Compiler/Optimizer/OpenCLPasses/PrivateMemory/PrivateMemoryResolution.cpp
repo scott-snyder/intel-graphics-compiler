@@ -637,7 +637,8 @@ public:
             Type* scalarptrTy = PointerType::get(scalarType, pLoad->getPointerAddressSpace());
             IGC_ASSERT(scalarType->getPrimitiveSizeInBits() / 8 == elementSize);
             Value* vec = UndefValue::get(pLoad->getType());
-            for (unsigned i = 0, e = pLoad->getType()->getVectorNumElements(); i < e; ++i)
+            VectorType* VTy = dyn_cast<VectorType> (pLoad->getType());
+            for (unsigned i = 0, e = VTy->getNumElements(); i < e; ++i)
             {
                 Value* ptr = IRB.CreateIntToPtr(address, scalarptrTy);
                 Value* v = IRB.CreateLoad(ptr);
@@ -674,7 +675,8 @@ public:
             Type* scalarptrTy = PointerType::get(scalarType, pStore->getPointerAddressSpace());
             IGC_ASSERT(scalarType->getPrimitiveSizeInBits() / 8 == elementSize);
             Value* vec = pStore->getValueOperand();
-            for (unsigned i = 0, e = pStore->getValueOperand()->getType()->getVectorNumElements(); i < e; ++i)
+            VectorType* VTy = dyn_cast<VectorType> (pStore->getValueOperand()->getType());
+            for (unsigned i = 0, e = VTy->getNumElements(); i < e; ++i)
             {
                 Value* ptr = IRB.CreateIntToPtr(address, scalarptrTy);
                 IRB.CreateStore(IRB.CreateExtractElement(vec, IRB.getInt32(i)), ptr);
@@ -732,14 +734,15 @@ bool PrivateMemoryResolution::testTransposedMemory(const Type* pTmpType, const T
         else if(pTmpType->isArrayTy())
         {
             tmpAllocaSize *= pTmpType->getArrayNumElements();
-            pTmpType = pTmpType->getSequentialElementType();
+            pTmpType = dyn_cast<ArrayType>(pTmpType)->getElementType();
             ok = (nullptr != pTmpType);
             IGC_ASSERT(ok);
         }
         else if(pTmpType->isVectorTy())
         {
-            tmpAllocaSize *= pTmpType->getVectorNumElements();
-            pTmpType = pTmpType->getSequentialElementType();
+            const VectorType* VTy = dyn_cast<VectorType>(pTmpType);
+            tmpAllocaSize *= VTy->getNumElements();
+            pTmpType = VTy->getElementType();
             ok = (nullptr != pTmpType);
             IGC_ASSERT(ok);
         }

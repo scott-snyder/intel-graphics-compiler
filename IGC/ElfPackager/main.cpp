@@ -161,7 +161,7 @@ std::unique_ptr<IGCLLVM::Module> LocalCloneModule(
                 auto inst = &*UI_BB;
                 if (auto CI = dyn_cast<CallInst>(inst))
                 {
-                    auto val = CI->getCalledValue();
+                    auto val = CI->getCalledOperand();
                     auto *I2 = dyn_cast<llvm::Function>(val->stripPointerCasts());
 
                     Function *NF2 = cast<Function>(New.get()->getOrInsertFunction(

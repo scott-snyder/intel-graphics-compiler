@@ -89,7 +89,7 @@ namespace {
 
         Type* Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
         auto* M = MM->getParent()->getParent()->getParent();
-        Value* TheFn = Intrinsic::getDeclaration(M, Intrinsic::memcpy, Tys);
+        Function* TheFn = Intrinsic::getDeclaration(M, Intrinsic::memcpy, Tys);
 
         return cast<MemCpyInst>(MemCpyInst::Create(TheFn, args));
     }
@@ -414,8 +414,8 @@ namespace {
                     {
                         Value* tSrc = Builder.CreateConstGEP1_32(vSrc, i);
                         Value* tDst = Builder.CreateConstGEP1_32(vDst, i);
-                        LoadInst* L = Builder.CreateAlignedLoad(tSrc, Align, IsVolatile);
-                        (void)Builder.CreateAlignedStore(L, tDst, Align, IsVolatile);
+                        LoadInst* L = Builder.CreateAlignedLoad(tSrc, llvm::MaybeAlign(Align), IsVolatile);
+                        (void)Builder.CreateAlignedStore(L, tDst, llvm::MaybeAlign(Align), IsVolatile);
                     }
                 }
                 else
@@ -426,8 +426,8 @@ namespace {
                         IRBuilder<> B(&(*++BasicBlock::iterator(IV)));
                         Value* tSrc = B.CreateGEP(vSrc, IV);
                         Value* tDst = B.CreateGEP(vDst, IV);
-                        LoadInst* L = B.CreateAlignedLoad(tSrc, Align, IsVolatile);
-                        (void)B.CreateAlignedStore(L, tDst, Align, IsVolatile);
+                        LoadInst* L = B.CreateAlignedLoad(tSrc, llvm::MaybeAlign(Align), IsVolatile);
+                        (void)B.CreateAlignedStore(L, tDst, llvm::MaybeAlign(Align), IsVolatile);
                     }
                 }
 
@@ -452,8 +452,8 @@ namespace {
                 NewDst = BOfst > 0 ? Builder.CreateConstGEP1_32(Dst, BOfst) : Dst;
                 vSrc = Builder.CreateBitCast(SkipBitCast(NewSrc), PointerType::get(VecTys[i], SrcAS), "memcpy_rem");
                 vDst = Builder.CreateBitCast(SkipBitCast(NewDst), PointerType::get(VecTys[i], DstAS), "memcpy_rem");
-                LoadInst* L = Builder.CreateAlignedLoad(vSrc, Align, IsVolatile);
-                (void)Builder.CreateAlignedStore(L, vDst, Align, IsVolatile);
+                LoadInst* L = Builder.CreateAlignedLoad(vSrc, llvm::MaybeAlign(Align), IsVolatile);
+                (void)Builder.CreateAlignedStore(L, vDst, llvm::MaybeAlign(Align), IsVolatile);
                 BOfst += SZ;
             }
         }
@@ -467,8 +467,8 @@ namespace {
                 IRBuilder<> B(&(*++BasicBlock::iterator(IV)));
                 Value* tSrc = B.CreateGEP(Src, IV);
                 Value* tDst = B.CreateGEP(Dst, IV);
-                LoadInst* L = B.CreateAlignedLoad(tSrc, Align, IsVolatile);
-                (void)B.CreateAlignedStore(L, tDst, Align, IsVolatile);
+                LoadInst* L = B.CreateAlignedLoad(tSrc, llvm::MaybeAlign(Align), IsVolatile);
+                (void)B.CreateAlignedStore(L, tDst, llvm::MaybeAlign(Align), IsVolatile);
             }
         }
         MC->eraseFromParent();
@@ -592,8 +592,8 @@ namespace {
 
                     auto* vSrc = B.CreateBitCast(SkipBitCast(tSrc), PointerType::get(VecTys[i], SrcAS), "memcpy_rem");
                     auto* vDst = B.CreateBitCast(SkipBitCast(tDst), PointerType::get(VecTys[i], DstAS), "memcpy_rem");
-                    LoadInst* L = B.CreateAlignedLoad(vSrc, newAlign, IsVolatile);
-                    (void)B.CreateAlignedStore(L, vDst, newAlign, IsVolatile);
+                    LoadInst* L = B.CreateAlignedLoad(vSrc, llvm::MaybeAlign(newAlign), IsVolatile);
+                    (void)B.CreateAlignedStore(L, vDst, llvm::MaybeAlign(newAlign), IsVolatile);
                 }
 
                 // now emit the <8 x i32> stores
@@ -610,8 +610,8 @@ namespace {
                         unsigned idx = NewCount - 1 - i;
                         auto* tSrc = B.CreateConstGEP1_32(vSrc, idx);
                         auto* tDst = B.CreateConstGEP1_32(vDst, idx);
-                        LoadInst* L = B.CreateAlignedLoad(tSrc, newAlign, IsVolatile);
-                        (void)B.CreateAlignedStore(L, tDst, newAlign, IsVolatile);
+                        LoadInst* L = B.CreateAlignedLoad(tSrc, llvm::MaybeAlign(newAlign), IsVolatile);
+                        (void)B.CreateAlignedStore(L, tDst, llvm::MaybeAlign(newAlign), IsVolatile);
                     }
                 }
                 else
@@ -622,8 +622,8 @@ namespace {
                         IRBuilder<> B(&(*++BasicBlock::iterator(IV)));
                         Value* tSrc = B.CreateGEP(vSrc, IV);
                         Value* tDst = B.CreateGEP(vDst, IV);
-                        LoadInst* L = B.CreateAlignedLoad(tSrc, newAlign, IsVolatile);
-                        (void)B.CreateAlignedStore(L, tDst, newAlign, IsVolatile);
+                        LoadInst* L = B.CreateAlignedLoad(tSrc, llvm::MaybeAlign(newAlign), IsVolatile);
+                        (void)B.CreateAlignedStore(L, tDst, llvm::MaybeAlign(newAlign), IsVolatile);
                     }
                 }
             }
@@ -646,8 +646,8 @@ namespace {
                     IRBuilder<> B(&(*++BasicBlock::iterator(IV)));
                     Value* tSrc = B.CreateGEP(i8Src, IV);
                     Value* tDst = B.CreateGEP(i8Dst, IV);
-                    LoadInst* L = B.CreateAlignedLoad(tSrc, 1, IsVolatile);
-                    (void)B.CreateAlignedStore(L, tDst, 1, IsVolatile);
+                    LoadInst* L = B.CreateAlignedLoad(tSrc, llvm::MaybeAlign(1), IsVolatile);
+                    (void)B.CreateAlignedStore(L, tDst, llvm::MaybeAlign(1), IsVolatile);
                 }
             }
 
@@ -712,7 +712,7 @@ namespace {
                     for (unsigned i = 0; i < NewCount; ++i)
                     {
                         Value* tDst = Builder.CreateConstGEP1_32(vDst, i);
-                        (void)Builder.CreateAlignedStore(vSrc, tDst, Align, IsVolatile);
+                        (void)Builder.CreateAlignedStore(vSrc, tDst, llvm::MaybeAlign(Align), IsVolatile);
                     }
                 }
                 else
@@ -722,7 +722,7 @@ namespace {
                     {
                         IRBuilder<> B(&(*++BasicBlock::iterator(IV)));
                         Value* tDst = B.CreateGEP(vDst, IV);
-                        (void)B.CreateAlignedStore(vSrc, tDst, Align, IsVolatile);
+                        (void)B.CreateAlignedStore(vSrc, tDst, llvm::MaybeAlign(Align), IsVolatile);
                     }
                 }
 
@@ -747,7 +747,7 @@ namespace {
                 NewDst = BOfst > 0 ? Builder.CreateConstGEP1_32(Dst, BOfst) : Dst;
                 vSrc = replicateScalar(Src, VecTys[i], MS);
                 vDst = Builder.CreateBitCast(SkipBitCast(NewDst), PTy, "memset_rem");
-                (void)Builder.CreateAlignedStore(vSrc, vDst, Align, IsVolatile);
+                (void)Builder.CreateAlignedStore(vSrc, vDst, llvm::MaybeAlign(Align), IsVolatile);
                 BOfst += SZ;
             }
         }
@@ -759,7 +759,7 @@ namespace {
             {
                 IRBuilder<> B(&(*++BasicBlock::iterator(IV)));
                 Value* tDst = B.CreateGEP(Dst, IV);
-                (void)B.CreateAlignedStore(Src, tDst, Align, IsVolatile);
+                (void)B.CreateAlignedStore(Src, tDst, llvm::MaybeAlign(Align), IsVolatile);
             }
         }
         MS->eraseFromParent();
@@ -789,7 +789,7 @@ namespace {
         unsigned sizeInBits = I->getArgOperand(0)->getType()->getScalarSizeInBits();
         Value* numBits = Builder.getIntN(sizeInBits, sizeInBits);
         if (I->getType()->isVectorTy()) {
-            numBits = ConstantVector::getSplat(I->getType()->getVectorNumElements(), cast<Constant>(numBits));
+            numBits = ConstantVector::getSplat(ElementCount(dyn_cast<VectorType>(I->getType())->getNumElements(), false), cast<Constant>(numBits));
         }
         auto shiftModulo = Builder.CreateURem(I->getArgOperand(2), numBits);
         auto negativeShift = Builder.CreateSub(numBits, shiftModulo);

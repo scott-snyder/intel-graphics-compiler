@@ -386,7 +386,7 @@ bool ProcessElfInput(
               llvm::Module* pKernelModule = nullptr;
 #if defined(IGC_SPIRV_ENABLED)
               Context.setAsSPIRV();
-              std::istringstream IS(buf);
+              std::istringstream IS(buf.str());
               std::string stringErrMsg;
               std::unordered_map<uint32_t, uint64_t> specIDToSpecValueMap = UnpackSpecConstants(
                                                                                   InputArgs.pSpecConstantsIds,
@@ -598,7 +598,7 @@ bool ParseInput(
     else if (inputDataFormatTemp == TB_DATA_FORMAT_SPIR_V) {
 #if defined(IGC_SPIRV_ENABLED)
         //convert SPIR-V binary to LLVM module
-        std::istringstream IS(strInput);
+        std::istringstream IS(strInput.str());
         std::string stringErrMsg;
         std::unordered_map<uint32_t, uint64_t> specIDToSpecValueMap = UnpackSpecConstants(
                                                                             pInputArgs->pSpecConstantsIds,
@@ -1326,13 +1326,13 @@ static void getvISACompileOpts(const STB_TranslateInputArgs* pInputArgs,
                 llvm::StringRef O = vISAOpts.substr(curPos);
                 O = O.trim();
                 if (!O.empty())
-                    optstrings.push_back(O);
+                    optstrings.push_back(O.str());
                 break;
             } else {
                 llvm::StringRef O = vISAOpts.substr(curPos, nextPos - curPos);
                 O = O.trim();
                 if (!O.empty())
-                    optstrings.push_back(O);
+                    optstrings.push_back(O.str());
                 curPos = nextPos + 1;
             }
         } while (curPos != llvm::StringRef::npos);

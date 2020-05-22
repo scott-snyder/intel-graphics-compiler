@@ -24,30 +24,42 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ======================= end_copyright_notice ==================================*/
 
-#ifndef IGCLLVM_ANALYSIS_MEMORYLOCATION_H
-#define IGCLLVM_ANALYSIS_MEMORYLOCATION_H
+// vim:ts=2:sw=2:et:
 
-#include <llvm/Analysis/MemoryLocation.h>
+#pragma warning(disable:4141)
+#pragma warning(disable:4146)
+#pragma warning(disable:4244)
+#pragma warning(disable:4624)
+#pragma warning(disable:4800)
 
-namespace IGCLLVM
-{
+#include "Upgrader.h"
 
-    class MemoryLocation : public llvm::MemoryLocation
-    {
-      public:
-        static inline llvm::MemoryLocation getForArgument(
-            llvm::Instruction* I, unsigned ArgIdx,
-            const llvm::TargetLibraryInfo* TLI)
-        {
-            return llvm::MemoryLocation::getForArgument(
-#if LLVM_VERSION_MAJOR <= 7
-            llvm::ImmutableCallSite(I), ArgIdx, *TLI
-#elif LLVM_VERSION_MAJOR >= 8
-            llvm::cast<llvm::CallInst>(I), ArgIdx, TLI
-#endif
-            );
-        }
-    };
+#include "common/LLVMWarningsPush.hpp"
+#include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+#include <llvm/Support/MemoryBuffer.h>
+#include <llvm/Support/raw_ostream.h>
+#include "common/LLVMWarningsPop.hpp"
+
+using namespace llvm;
+
+std::unique_ptr<MemoryBuffer>
+upgrader::upgradeBitcodeFile(MemoryBufferRef Buffer, LLVMContext &Context) {
+  auto ErrM = upgrader::parseBitcodeFile(Buffer, Context);
+  Module *M = ErrM.get().get();
+  if (!M)
+    return nullptr;
+
+  SmallVector<char, 0> Buf;
+  Buf.reserve(1024*1024);
+
+  raw_svector_ostream OS(Buf);
+  WriteBitcodeToFile(*M, OS);
+
+  return MemoryBuffer::getMemBufferCopy(OS.str());
 }
 
-#endif
+Expected<std::unique_ptr<Module>>
+upgrader::upgradeAndParseBitcodeFile(MemoryBufferRef Buffer, LLVMContext &Context) {
+  return upgrader::parseBitcodeFile(Buffer, Context);
+}

@@ -45,7 +45,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Pass.h"
-#include "llvm/PassAnalysisSupport.h"
 #include "llvm/Analysis/TargetFolder.h"
 #include "common/LLVMWarningsPop.hpp"
 #include "common/Types.hpp"
@@ -291,8 +290,9 @@ namespace IGC {
                 if (!Ty->isVectorTy())
                     return false;
 
-                unsigned NumElts = Ty->getVectorNumElements();
-                Type* EltTy = Ty->getVectorElementType();
+                VectorType* VTy = dyn_cast<VectorType> (Ty);
+                unsigned NumElts = VTy->getNumElements();
+                Type* EltTy = VTy->getElementType();
                 const auto& ProfitLengths = getProfitLoadVectorLength(EltTy);
 
                 return std::any_of(ProfitLengths.begin(), ProfitLengths.end(),

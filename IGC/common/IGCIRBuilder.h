@@ -41,25 +41,25 @@ namespace llvm {
             ArrayRef<OperandBundleDef> OpBundles = None)
             : IGCLLVM::IRBuilder<T, Inserter>(IP, FPMathTag, OpBundles) {}
 
-        CallInst *CreateCall2(Value *Callee, Value *Arg1, Value *Arg2,
+        CallInst *CreateCall2(Function *Callee, Value *Arg1, Value *Arg2,
             const Twine &Name = "") {
             Value *Args[] = { Arg1, Arg2 };
             return this->CreateCall(Callee, Args);
         }
 
-        CallInst *CreateCall3(Value *Callee, Value *Arg1, Value *Arg2, Value *Arg3,
+        CallInst *CreateCall3(Function *Callee, Value *Arg1, Value *Arg2, Value *Arg3,
             const Twine &Name = "") {
             Value *Args[] = { Arg1, Arg2, Arg3 };
             return this->CreateCall(Callee, Args);
         }
 
-        CallInst *CreateCall4(Value *Callee, Value *Arg1, Value *Arg2, Value *Arg3,
+        CallInst *CreateCall4(Function *Callee, Value *Arg1, Value *Arg2, Value *Arg3,
             Value *Arg4, const Twine &Name = "") {
             Value *Args[] = { Arg1, Arg2, Arg3, Arg4 };
             return this->CreateCall(Callee, Args);
         }
 
-        CallInst *CreateCall5(Value *Callee, Value *Arg1, Value *Arg2, Value *Arg3,
+        CallInst *CreateCall5(Function *Callee, Value *Arg1, Value *Arg2, Value *Arg3,
             Value *Arg4, Value *Arg5, const Twine &Name = "") {
             Value *Args[] = { Arg1, Arg2, Arg3, Arg4, Arg5 };
             return this->CreateCall(Callee, Args);

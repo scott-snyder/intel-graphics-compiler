@@ -124,7 +124,7 @@ namespace {
             MemRefListTy& MemRefs, TrivialMemRefListTy& ToOpt);
 
         unsigned getNumElements(Type* Ty) const {
-            return Ty->isVectorTy() ? Ty->getVectorNumElements() : 1;
+            return Ty->isVectorTy() ? dyn_cast<VectorType>(Ty)->getNumElements() : 1;
         }
 
         MemoryLocation getLocation(Instruction* I) const {
@@ -752,7 +752,7 @@ bool MemOpt::mergeLoad(LoadInst* LeadingLoad,
         PointerType::get(NewLoadType, LeadingLoad->getPointerAddressSpace());
     Value* NewPointer = Builder.CreateBitCast(Ptr, NewPointerType);
     LoadInst* NewLoad =
-        Builder.CreateAlignedLoad(NewPointer, FirstLoad->getAlignment());
+        Builder.CreateAlignedLoad(NewPointer, llvm::MaybeAlign(FirstLoad->getAlignment()));
     NewLoad->setDebugLoc(LeadingLoad->getDebugLoc());
 
     // Unpack the load value to their uses. For original vector loads, extracting
@@ -775,7 +775,8 @@ bool MemOpt::mergeLoad(LoadInst* LeadingLoad,
         Pos = unsigned((std::get<1>(I) - FirstOffset) / LdScalarSize);
 
         if (Ty->isVectorTy()) {
-            if (Pos + Ty->getVectorNumElements() > NumElts) {
+            VectorType* VTy = dyn_cast<VectorType> (Ty);
+            if (Pos + VTy->getNumElements() > NumElts) {
                 // This implies we're trying to extract an element from our new load
                 // with an index > the size of the new load.  This shouldn't happen,
                 // but we'll generate correct code if it does since we don't remove the
@@ -784,7 +785,7 @@ bool MemOpt::mergeLoad(LoadInst* LeadingLoad,
                 continue;
             }
             Value* Val = UndefValue::get(Ty);
-            for (unsigned i = 0, e = Ty->getVectorNumElements(); i != e; ++i) {
+            for (unsigned i = 0, e = VTy->getNumElements(); i != e; ++i) {
                 Value* Ex = Builder.CreateExtractElement(NewLoad, Builder.getInt32(Pos + i));
                 Ex = createBitOrPointerCast(Ex, ScalarTy, Builder);
                 Val = Builder.CreateInsertElement(Val, Ex, Builder.getInt32(i));
@@ -1055,7 +1056,8 @@ bool MemOpt::mergeStore(StoreInst* LeadingStore,
         IGC_ASSERT(hasSameSize(ScalarTy, LeadingStoreScalarType));
 
         if (Ty->isVectorTy()) {
-            for (unsigned i = 0, e = Ty->getVectorNumElements(); i != e; ++i) {
+            VectorType* VTy = dyn_cast<VectorType> (Ty);
+            for (unsigned i = 0, e = VTy->getNumElements(); i != e; ++i) {
                 Value* Ex = Builder.CreateExtractElement(Val, Builder.getInt32(i));
                 Ex = createBitOrPointerCast(Ex, LeadingStoreScalarType, Builder);
                 NewStoreVal = Builder.CreateInsertElement(NewStoreVal, Ex,
@@ -1110,7 +1112,7 @@ bool MemOpt::mergeStore(StoreInst* LeadingStore,
         Builder.CreateBitCast(FirstStore->getPointerOperand(), NewPointerType);
     StoreInst* NewStore =
         Builder.CreateAlignedStore(NewStoreVal, NewPointer,
-            FirstStore->getAlignment());
+                                   llvm::MaybeAlign(FirstStore->getAlignment()));
     NewStore->setDebugLoc(TailingStore->getDebugLoc());
 
     // Replace the list to be optimized with the new store.

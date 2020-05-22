@@ -465,8 +465,9 @@ void FindInterestingConstants::addInterestingConstant(llvm::Type* loadTy, unsign
         //  For now we can only detect anyValue=1 cases in vector type loads
         if (anyValue)
         {
-            Type * srcEltTy = loadTy->getVectorElementType();
-            unsigned srcNElts = loadTy->getVectorNumElements();
+            VectorType* VTy = dyn_cast<VectorType> (loadTy);
+            Type * srcEltTy = VTy->getElementType();
+            unsigned srcNElts = VTy->getNumElements();
             unsigned eltSize_in_bytes = (unsigned int)srcEltTy->getPrimitiveSizeInBits() / 8;
             interestingConst.ca.size = eltSize_in_bytes;
             for (unsigned i = 0; i < srcNElts; i++)

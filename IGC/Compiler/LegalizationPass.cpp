@@ -360,7 +360,7 @@ LegalizeGVNBitCastPattern(IRBuilder<>* Builder, const DataLayout* DL,
         return false;
     }
 
-    Type* EltTy = SrcTy->getVectorElementType();
+    Type* EltTy = dyn_cast<VectorType>(SrcTy)->getElementType();
     auto match1 = [=](Value* V, BinaryOperator*& BO, TruncInst*& TI,
         BitCastInst*& BI, int& Index)
     {
@@ -761,7 +761,7 @@ void Legalization::visitSelectInst(SelectInst& I)
     }
     else if (I.getType()->isVectorTy())
     {
-        unsigned int vecSize = I.getType()->getVectorNumElements();
+      unsigned int vecSize = dyn_cast<VectorType>(I.getType())->getNumElements();
         Value* newVec = UndefValue::get(I.getType());
         m_builder->SetInsertPoint(&I);
         for (unsigned int i = 0; i < vecSize; i++)
@@ -1142,7 +1142,7 @@ void Legalization::visitStoreInst(StoreInst& I)
     if (ConstantDataVector * vec = dyn_cast<ConstantDataVector>(I.getOperand(0)))
     {
         Value* newVec = UndefValue::get(vec->getType());
-        unsigned int nbElement = vec->getType()->getVectorNumElements();
+        unsigned int nbElement = dyn_cast<VectorType>(vec->getType())->getNumElements();
         for (unsigned int i = 0; i < nbElement; i++)
         {
             Constant* cst = vec->getElementAsConstant(i);
@@ -1163,7 +1163,7 @@ void Legalization::visitStoreInst(StoreInst& I)
     else if (ConstantVector * vec = dyn_cast<ConstantVector>(I.getOperand(0)))
     {
         Value* newVec = UndefValue::get(vec->getType());
-        unsigned int nbElement = vec->getType()->getVectorNumElements();
+        unsigned int nbElement = dyn_cast<VectorType>(vec->getType())->getNumElements();
         for (unsigned int i = 0; i < nbElement; i++)
         {
             Constant* cst = vec->getOperand(i);
@@ -1184,7 +1184,7 @@ void Legalization::visitStoreInst(StoreInst& I)
     else if (ConstantAggregateZero * vec = dyn_cast<ConstantAggregateZero>(I.getOperand(0)))
     {
         Value* newVec = UndefValue::get(vec->getType());
-        unsigned int nbElement = vec->getType()->getVectorNumElements();
+        unsigned int nbElement = dyn_cast<VectorType>(vec->getType())->getNumElements();
         for (unsigned int i = 0; i < nbElement; i++)
         {
             Constant* cst = vec->getElementValue(i);
@@ -1332,7 +1332,7 @@ void Legalization::visitInsertElementInst(InsertElementInst& I)
     if (ConstantDataVector * vec = dyn_cast<ConstantDataVector>(I.getOperand(0)))
     {
         Value* newVec = UndefValue::get(vec->getType());
-        unsigned int nbElement = vec->getType()->getVectorNumElements();
+        unsigned int nbElement = dyn_cast<VectorType>(vec->getType())->getNumElements();
         for (unsigned int i = 0; i < nbElement; i++)
         {
             Constant* cst = vec->getElementAsConstant(i);
@@ -1352,7 +1352,7 @@ void Legalization::visitInsertElementInst(InsertElementInst& I)
     else if (ConstantVector * vec = dyn_cast<ConstantVector>(I.getOperand(0)))
     {
         Value* newVec = UndefValue::get(I.getType());
-        unsigned int nbElement = vec->getType()->getVectorNumElements();
+        unsigned int nbElement = dyn_cast<VectorType>(vec->getType())->getNumElements();
         for (unsigned int i = 0; i < nbElement; i++)
         {
             Constant* cst = vec->getOperand(i);
@@ -1372,7 +1372,7 @@ void Legalization::visitInsertElementInst(InsertElementInst& I)
     else if (ConstantAggregateZero * vec = dyn_cast<ConstantAggregateZero>(I.getOperand(0)))
     {
         Value* newVec = UndefValue::get(I.getType());
-        unsigned int nbElement = vec->getType()->getVectorNumElements();
+        unsigned int nbElement = dyn_cast<VectorType>(vec->getType())->getNumElements();
         for (unsigned int i = 0; i < nbElement; i++)
         {
             Constant* cst = vec->getElementValue(i);
@@ -1389,7 +1389,7 @@ void Legalization::visitInsertElementInst(InsertElementInst& I)
     else if (I.getOperand(1)->getType()->isIntegerTy(1))
     {
         // This promotes i1 insertelement to i32
-        unsigned int nbElement = I.getOperand(0)->getType()->getVectorNumElements();
+      unsigned int nbElement = dyn_cast<VectorType>(I.getOperand(0)->getType())->getNumElements();
         Value* newVec = UndefValue::get(VectorType::get(m_builder->getInt32Ty(), nbElement));
         PromoteInsertElement(&I, newVec);
     }
@@ -1579,13 +1579,13 @@ Type* Legalization::LegalAllocaType(Type* type) const
         break;
     case Type::ArrayTyID:
         legalType = ArrayType::get(
-            LegalAllocaType(type->getSequentialElementType()),
+            LegalAllocaType(dyn_cast<ArrayType>(type)->getElementType()),
             type->getArrayNumElements());
         break;
-    case Type::VectorTyID:
+    case Type::FixedVectorTyID:
         legalType = VectorType::get(
-            LegalAllocaType(type->getSequentialElementType()),
-            type->getVectorNumElements());
+            LegalAllocaType(dyn_cast<VectorType>(type)->getElementType()),
+            dyn_cast<VectorType>(type)->getNumElements());
         break;
     case Type::StructTyID:
         return LegalStructAllocaType(type);
@@ -1777,7 +1777,7 @@ void Legalization::visitIntrinsicInst(llvm::IntrinsicInst& I)
             // On platform lacking of FP16 rounding, promote them to FP32 and
             // demote back.
             Value* Val = Builder.CreateFPExt(I.getOperand(0), Builder.getFloatTy());
-            Value* Callee = Intrinsic::getDeclaration(I.getParent()->getParent()->getParent(), intrinsicID, Builder.getFloatTy());
+            Function* Callee = Intrinsic::getDeclaration(I.getParent()->getParent()->getParent(), intrinsicID, Builder.getFloatTy());
             Val = Builder.CreateCall(Callee, Val);
             Val = Builder.CreateFPTrunc(Val, I.getType());
             I.replaceAllUsesWith(Val);

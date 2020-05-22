@@ -690,7 +690,7 @@ void BIImport::removeFunctionBitcasts(Module& M)
             {
                 CallInst* pInstCall = dyn_cast<CallInst>(I);
                 if (!pInstCall || pInstCall->getCalledFunction()) continue;
-                if (auto constExpr = dyn_cast<llvm::ConstantExpr>(pInstCall->getCalledValue()))
+                if (auto constExpr = dyn_cast<llvm::ConstantExpr>(pInstCall->getCalledOperand()))
                 {
                     if (auto funcTobeChanged = dyn_cast<llvm::Function>(constExpr->stripPointerCasts()))
                     {

@@ -1405,7 +1405,7 @@ namespace //Anonymous
                 if (auto callInst = dyn_cast<llvm::CallInst>(user))
                 {
                     llvm::InlineFunctionInfo IFI;
-                    inlined = llvm::InlineFunction(callInst, IFI, nullptr, false) || inlined;
+                    inlined = llvm::InlineFunction(*callInst, IFI, nullptr, false).isSuccess() || inlined;
                 }
             }
 
@@ -1570,7 +1570,7 @@ namespace //Anonymous
                                             callInst->setCalledFunction(blockInvokeFunc);
                                             changed = true;
                                             llvm::InlineFunctionInfo IFI;
-                                            inlined = llvm::InlineFunction(callInst, IFI, nullptr, false);
+                                            inlined = llvm::InlineFunction(*callInst, IFI, nullptr, false).isSuccess();
                                             IGC_ASSERT(inlined && "failed inlining block invoke function");
                                         }
                                     }
@@ -1687,11 +1687,11 @@ namespace //Anonymous
                     default:
                         return os << "int";
                     }
-                case Type::VectorTyID:
+                case Type::FixedVectorTyID:
                     // this generates <element_type><num_elements> string. Ie for char2 element_type is char and num_elements is 2
                     // that is done by callin BaseTypeName on vector element type, this recursive call has only a depth of one since
                     // there are no compound vectors in OpenCL.
-                    return BaseTypeName(type->getVectorElementType(), os) << type->getVectorNumElements();
+                    return BaseTypeName(dyn_cast<VectorType>(type)->getElementType(), os) << dyn_cast<VectorType>(type)->getNumElements();
                 default:
                     IGC_ASSERT(false && "Unknown basic type found");
                     return os << "unknown_type";
@@ -1753,7 +1753,7 @@ namespace //Anonymous
             funcMD->m_OpenCLArgTypes.push_back(typeName);
             funcMD->m_OpenCLArgTypeQualifiers.push_back("");
             funcMD->m_OpenCLArgBaseTypes.push_back(typeName);
-            funcMD->m_OpenCLArgNames.push_back(arg.getName());
+            funcMD->m_OpenCLArgNames.push_back(arg.getName().str());
         }
         _pMdUtils->save(kernelFunc->getContext());
 

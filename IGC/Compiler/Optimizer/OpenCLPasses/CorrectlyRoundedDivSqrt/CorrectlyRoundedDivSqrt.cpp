@@ -136,7 +136,7 @@ Value* CorrectlyRoundedDivSqrt::emitIEEEDivide(BinaryOperator* I, Value* Op0, Va
     }
     else
     {
-        unsigned VecLen = Ty->getVectorNumElements();
+        unsigned VecLen = dyn_cast<VectorType>(Ty)->getNumElements();
         Divide = UndefValue::get(Ty);
         for (unsigned i = 0; i < VecLen; i++)
         {

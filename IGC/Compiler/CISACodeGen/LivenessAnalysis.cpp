@@ -55,7 +55,7 @@ std::string LivenessAnalysis::getllvmValueName(Value* V)
 {
     if (V->hasName())
     {
-        return V->getName();
+        return V->getName().str();
     }
     // For unamed value, try the following:
     std::string Str;
