@@ -157,10 +157,11 @@ std::string recursive_mangle(const Type* pType)
             return "f16";
         case Type::IntegerTyID:
             return "i" + utostr(pType->getIntegerBitWidth());
-        case Type::VectorTyID:
+        case Type::FixedVectorTyID:
         {
-            unsigned int vecLen = pType->getVectorNumElements();
-            Type* pEltType = pType->getVectorElementType();
+            const VectorType* VTy = dyn_cast<VectorType> (pType);
+            unsigned int vecLen = VTy->getNumElements();
+            Type* pEltType = VTy->getElementType();
             return "v" + utostr(vecLen) + recursive_mangle(pEltType);
         }
         case Type::PointerTyID:
@@ -177,7 +178,7 @@ std::string recursive_mangle(const Type* pType)
         }
         case Type::StructTyID:
         {
-            auto structName = cast<StructType>(pType)->getName();
+            auto structName = cast<StructType>(pType)->getName().str();
             auto pointPos = structName.rfind('.');
             return pointPos != structName.npos ? structName.substr(pointPos + 1) : structName;
         }

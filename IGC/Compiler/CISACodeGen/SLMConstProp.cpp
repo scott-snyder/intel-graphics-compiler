@@ -637,7 +637,7 @@ bool SLMConstProp::isFloatType(Type* Ty)
         {
             return false;
         }
-        Ty = vTy->getVectorElementType();
+        Ty = vTy->getElementType();
     }
     return Ty->isFloatTy();
 }

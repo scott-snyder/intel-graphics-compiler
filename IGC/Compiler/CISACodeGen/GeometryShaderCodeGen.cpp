@@ -24,7 +24,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ======================= end_copyright_notice ==================================*/
 #include "common/LLVMWarningsPush.hpp"
-#include <llvm/PassAnalysisSupport.h>
 #include <llvm/Analysis/PostDominators.h>
 #include "common/LLVMWarningsPop.hpp"
 #include "ShaderTypesEnum.h"

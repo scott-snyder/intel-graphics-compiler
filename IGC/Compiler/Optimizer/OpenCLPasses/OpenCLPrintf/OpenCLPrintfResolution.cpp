@@ -718,7 +718,7 @@ Value* OpenCLPrintfResolution::fixupPrintfArg(CallInst& printfCall, Value* arg, 
                 // If this is a fpcast, use the origin value.
                 Type* srcType = fpCastVal->getSrcTy();
                 if (srcType->isFloatTy() ||
-                    (srcType->isVectorTy() && srcType->getVectorElementType()->isFloatTy()))
+                    (srcType->isVectorTy() && dyn_cast<VectorType>(srcType)->getElementType()->isFloatTy()))
                 {
                     return fpCastVal->getOperand(0);
                 }
@@ -727,7 +727,7 @@ Value* OpenCLPrintfResolution::fixupPrintfArg(CallInst& printfCall, Value* arg, 
             Type* newType = Type::getFloatTy(arg->getContext());
             if (arg->getType()->isVectorTy())
             {
-                newType = VectorType::get(newType, arg->getType()->getVectorNumElements());
+              newType = VectorType::get(newType, dyn_cast<VectorType>(arg->getType())->getNumElements());
             }
 
             Instruction* tmp = CastInst::CreateFPCast(arg,
@@ -756,7 +756,7 @@ void OpenCLPrintfResolution::preprocessPrintfArgs(CallInst& printfCall)
         arg = fixupPrintfArg(printfCall, arg, argDataType);
         uint vecSize = 0;
         if (argType->isVectorTy()) {
-            vecSize = argType->getVectorNumElements();
+            vecSize = dyn_cast<VectorType>(argType)->getNumElements();
         }
         m_argDescriptors.push_back(SPrintfArgDescriptor(argDataType, arg, vecSize));
     }
@@ -850,7 +850,7 @@ IGC::SHADER_PRINTF_TYPE OpenCLPrintfResolution::getPrintfArgDataType(Value* prin
     }
     else if (argType->isVectorTy())
     {
-        Type* elemType = argType->getVectorElementType();
+        Type* elemType = dyn_cast<VectorType>(argType)->getElementType();
         if (elemType->isFloatingPointTy())
         {
             if (elemType->isDoubleTy())

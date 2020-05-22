@@ -173,7 +173,7 @@ namespace IGC
         IGCIRBuilder<> IRB(pModule->getContext());
         IRB.SetInsertPoint(&CI);
 
-        Value* calledAddr = IRB.CreatePtrToInt(CI.getCalledValue(), IRB.getInt64Ty());
+        Value* calledAddr = IRB.CreatePtrToInt(CI.getCalledOperand(), IRB.getInt64Ty());
 
         BasicBlock* beginBlock = CI.getParent();
         BasicBlock* endBlock = beginBlock->splitBasicBlock(&CI, "endIndirectCallBB");

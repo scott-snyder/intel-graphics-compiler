@@ -4364,7 +4364,7 @@ namespace IGC
 
         vKernel = nullptr;
 
-        std::string kernelName = m_program->entry->getName();
+        std::string kernelName = m_program->entry->getName().str();
         if (context->m_instrTypes.hasDebugInfo)
         {
             // This metadata node is added by TransformBlocks pass for device side

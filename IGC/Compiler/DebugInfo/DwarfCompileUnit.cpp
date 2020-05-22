@@ -1329,7 +1329,7 @@ void CompileUnit::constructEnumTypeDIE(DIE& Buffer, DICompositeType* CTy)
             DIE* Enumerator = createAndAddDIE(dwarf::DW_TAG_enumerator, Buffer);
             StringRef Name = Enum->getName();
             addString(Enumerator, dwarf::DW_AT_name, Name);
-            int64_t Value = Enum->getValue();
+            int64_t Value = Enum->getValue().getLimitedValue();
             addSInt(Enumerator, dwarf::DW_AT_const_value, dwarf::DW_FORM_sdata, Value);
         }
     }

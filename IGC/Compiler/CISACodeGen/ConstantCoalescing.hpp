@@ -160,7 +160,7 @@ namespace IGC
                 return val;
             }
 
-            CallInst* CreateCall2(Value* Callee, Value* Arg1, Value* Arg2,
+            CallInst* CreateCall2(Function* Callee, Value* Arg1, Value* Arg2,
                 const Twine& Name = "") {
                 CallInst* val = IGCIRBuilder<>::CreateCall2(Callee, Arg1, Arg2, Name);
                 m_TT->RegisterNewValueAndAssignID(val);
@@ -218,7 +218,7 @@ namespace IGC
                 return val;
             }
 
-            CallInst* CreateCall(Value* Callee, ArrayRef<Value*> Args,
+            CallInst* CreateCall(Function* Callee, ArrayRef<Value*> Args,
                 const Twine& Name = "") {
                 CallInst* val = IGCIRBuilder<>::CreateCall(Callee, Args, Name);
                 m_TT->RegisterNewValueAndAssignID(val);

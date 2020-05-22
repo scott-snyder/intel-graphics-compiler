@@ -520,8 +520,9 @@ namespace IGC
         unsigned int numElements = 1;
         if (baseType->isVectorTy())
         {
-            numElements = baseType->getVectorNumElements();
-            baseType = baseType->getVectorElementType();
+            VectorType* VTy = dyn_cast<VectorType>(baseType);
+            numElements = VTy->getNumElements();
+            baseType = VTy->getElementType();
         }
 
         // Integer types need to be qualified with a "u" if they are unsigned
@@ -1915,7 +1916,7 @@ namespace IGC
             {
                 ctx->m_programOutput.m_ShaderProgramList.push_back(pKernel);
             }
-            COMPILER_SHADER_STATS_PRINT(pKernel->m_shaderStats, ShaderType::OPENCL_SHADER, ctx->hash, pFunc->getName());
+            COMPILER_SHADER_STATS_PRINT(pKernel->m_shaderStats, ShaderType::OPENCL_SHADER, ctx->hash, pFunc->getName().str());
             COMPILER_SHADER_STATS_SUM(ctx->m_sumShaderStats, pKernel->m_shaderStats, ShaderType::OPENCL_SHADER);
             COMPILER_SHADER_STATS_DEL(pKernel->m_shaderStats);
         }

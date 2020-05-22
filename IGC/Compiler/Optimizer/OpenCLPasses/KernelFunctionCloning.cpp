@@ -29,7 +29,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "common/LLVMWarningsPush.hpp"
 #include <llvm/Pass.h>
 #include <llvm/ADT/SmallVector.h>
-#include <llvm/IR/CallSite.h>
 #include <llvm/Support/Debug.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/Utils/Cloning.h>
@@ -125,9 +124,8 @@ bool KernelFunctionCloning::runOnModule(Module& M) {
             continue;
         // Check this kernell function is called.
         for (auto* U : F.users()) {
-            ImmutableCallSite CS(U);
-            if (!CS)
-                continue;
+            if (!dyn_cast<CallBase> (U))
+                  continue;
             KernelsToClone.push_back(&F);
             break;
         }
@@ -142,10 +140,9 @@ bool KernelFunctionCloning::runOnModule(Module& M) {
         if (!F->getParent()->getFunction(NewF->getName()))
             F->getParent()->getFunctionList().push_back(NewF);
         for (auto* U : F->users()) {
-            CallSite CS(U);
-            if (!CS)
-                continue;
-            CS.setCalledFunction(NewF);
+          if (CallBase* II = dyn_cast<CallBase> (U)) {
+            II->setCalledOperand(NewF);
+          }
         }
         Changed = true;
     }

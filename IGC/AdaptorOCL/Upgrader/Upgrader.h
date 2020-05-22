@@ -34,4 +34,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "llvm9/Upgrader.h"
 #elif LLVM_VERSION_MAJOR == 10
 #include "llvm10/Upgrader.h"
+#elif LLVM_VERSION_MAJOR == 11
+#include "llvm11/Upgrader.h"
 #endif

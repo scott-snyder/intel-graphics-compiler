@@ -68,7 +68,7 @@ namespace llvm
 
         bool isProfitableToHoist(Instruction* I);
 
-        using BaseT::getCallCost;
+      //using BaseT::getCallCost;
         unsigned getCallCost(const Function* F, ArrayRef<const Value*> Args
 #if LLVM_VERSION_MAJOR >= 9
             , const User * U

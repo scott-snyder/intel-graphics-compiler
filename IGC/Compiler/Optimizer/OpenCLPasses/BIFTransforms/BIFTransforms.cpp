@@ -98,7 +98,7 @@ bool BIFTransforms::replaceBIF(Function& F)
     }
     Type* Ty = AI->getType();
     if (Ty->isHalfTy() ||
-        (Ty->isVectorTy() && Ty->getVectorElementType()->isHalfTy()))
+        (Ty->isVectorTy() && dyn_cast<VectorType>(Ty)->getElementType()->isHalfTy()))
     {
         return false;
     }

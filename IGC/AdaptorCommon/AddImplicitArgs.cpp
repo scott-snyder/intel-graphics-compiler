@@ -341,7 +341,7 @@ void AddImplicitArgs::replaceAllUsesWithNewOCLBuiltinFunction(CodeGenContext* ct
 
         if (IGC_IS_FLAG_ENABLED(EnableFunctionPointer))
         {
-            if (!cInst || cInst->getCalledValue() != old_func)
+            if (!cInst || cInst->getCalledOperand() != old_func)
             {
                 // Support indirect function pointer usages
                 if (Instruction* userInst = dyn_cast<Instruction>(U))

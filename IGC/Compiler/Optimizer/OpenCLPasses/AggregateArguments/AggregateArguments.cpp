@@ -119,7 +119,7 @@ bool AggregateArgumentsAnalysis::runOnFunction(Function& F)
     return changed;
 }
 
-static uint64_t getNumElements(SequentialType* type)
+static uint64_t getNumElements(Type* type)
 {
     if (ArrayType * arrayType = dyn_cast<ArrayType>(type))
     {
@@ -153,9 +153,26 @@ void AggregateArgumentsAnalysis::addImplictArgs(Type* type, uint64_t baseAllocaO
             addImplictArgs(elementType, baseAllocaOffset + elementOffsetInStruct);
         }
     }
-    else if (isa<ArrayType>(type) || isa<VectorType>(type))
+    else if (isa<ArrayType>(type))
     {
-        SequentialType* seqType = cast<SequentialType>(type);
+        ArrayType* seqType = cast<ArrayType>(type);
+        uint64_t numElements = getNumElements(seqType);
+        IGC_ASSERT(numElements < UINT_MAX);
+
+        Type* elementType = seqType->getElementType();
+        uint64_t elementSize = m_pDL->getTypeStoreSize(elementType);
+
+        // build the implicit arguments forwards for all elements of the
+        // array.  If this happens to be an array of struct, the elements
+        // of the struct will be handled in the recursive step.
+        for (unsigned int i = 0; i < numElements; ++i)
+        {
+            addImplictArgs(elementType, baseAllocaOffset + i * elementSize);
+        }
+    }
+    else if (isa<VectorType>(type))
+    {
+        VectorType* seqType = cast<VectorType>(type);
         uint64_t numElements = getNumElements(seqType);
         IGC_ASSERT(numElements < UINT_MAX);
 
