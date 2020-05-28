@@ -14320,7 +14320,7 @@ void EmitPass::emitVectorBitCast(llvm::BitCastInst* BCI)
     }
     if (dstTy->isVectorTy())
     {
-        VectorType* VTy = dyn_cast<VectorType> (srcTy);
+        VectorType* VTy = dyn_cast<VectorType> (dstTy);
         dstEltTy = VTy->getElementType();
         dstNElts = VTy->getNumElements();
     }

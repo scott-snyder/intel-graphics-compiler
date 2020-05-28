@@ -441,6 +441,29 @@ Value* CImagesBI::CImagesUtils::traceImageOrSamplerArgument(CallInst* pCallInst,
                     baseValue = (shuffleidx < dyn_cast<VectorType>(inst->getOperand(0)->getType())->getNumElements()) ?
                         inst->getOperand(0) : inst->getOperand(1);
                 }
+                else if (BitCastInst * inst = dyn_cast<BitCastInst>(baseValue))
+                {
+                  if (inst->getSrcTy()->getTypeID() == Type::FixedVectorTyID &&
+                      inst->getDestTy()->getTypeID() == Type::FixedVectorTyID)
+                  {
+                    VectorType* srcTy = dyn_cast<VectorType> (inst->getSrcTy());
+                    VectorType* dstTy = dyn_cast<VectorType> (inst->getDestTy());
+                    //unsigned int srcNum = srcTy->getNumElements();
+                    //unsigned int dstNum = dstTy->getNumElements();
+                    unsigned int srcEltSz = srcTy->getElementType()->getPrimitiveSizeInBits();
+                    unsigned int dstEltSz = dstTy->getElementType()->getPrimitiveSizeInBits();
+                    idx = idx * dstEltSz / srcEltSz;
+                  }
+                  baseValue = inst->getOperand(0);
+                }
+                else if (CastInst * inst = dyn_cast<CastInst>(baseValue))
+                {
+                  baseValue = inst->getOperand(0);
+                }
+                else if (dyn_cast<UndefValue>(baseValue))
+                {
+                  return nullptr;
+                }
                 else
                 {
                     IGC_ASSERT(false && "unknown construct!");
